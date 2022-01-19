@@ -1,6 +1,5 @@
 
 %%
-
 filepath = 'C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\Orient\Orient_1_X1.tif'
 Ang = imread(filepath);
 qq = ordermatrixglissant_overlap(Ang,10,3);
@@ -8,9 +7,12 @@ qq = ordermatrixglissant_overlap(Ang,10,3);
 [f,name,ext] = fileparts(filepath);
 dir_info  = dir(['C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\*\',name(8:end),'.tif']);
 raw_img_path = [dir_info.folder '\' dir_info.name];
-imshow(imread(raw_img_path));
+imshow(imread(raw_img_path));; hold on
 % imshow(qq<.25);
 % imshow(qq); 
+
+[xf, yf] = detectDefectsFromAngle(Ang);
+scatter(xf, yf, "filled")
 hold on;
 %%
 [Xu,Yu] = meshgrid(1:size(Ang,2),1:size(Ang,1));

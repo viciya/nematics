@@ -60,11 +60,9 @@ if (nargin < 1)
     d=uint16(conv2(reshape(single( 2^14*(rand(1,1024*1024)>0.99995) ),[1024 1024]) ,fspecial('gaussian', 15,3),'same')+2^8*rand(1024));
     imagesc(d);
 end
-
 if ndims(d)>2 %I added this in case one uses imread (JPG\PNG\...).
     d=uint16(rgb2gray(d));
 end
-
 if isfloat(d) %For the case the input image is double, casting to uint16 keeps enough dynamic range while speeds up the code.
     if max(d(:))<=1
         d =  uint16( d.*2^16./(max(d(:))));
@@ -72,31 +70,25 @@ if isfloat(d) %For the case the input image is double, casting to uint16 keeps e
         d = uint16(d);
     end
 end
-
 if (nargin < 2)
     thres = (max([min(max(d,[],1))  min(max(d,[],2))])) ;
 end
-
 if (nargin < 3)
     filt = (fspecial('gaussian', 7,1)); %if needed modify the filter according to the expected peaks sizes
 end
-
 if (nargin < 4)
     edg =3;
 end
-
 if (nargin < 5)
     res = 1;
 end
-
 if (nargin < 6)
     savefileflag = false;
 else
     savefileflag = true;
 end
-
 %% Analyze image
-if any(d(:))  ; %for the case of non zero raw image
+if any(d(:)) %for the case of non zero raw image
     
     d = medfilt2(d,[3,3]);
     
@@ -107,7 +99,7 @@ if any(d(:))  ; %for the case of non zero raw image
         d=d.*uint16(d>thres);
     end
     
-    if any(d(:))   ; %for the case of the image is still non zero
+    if any(d(:))    %for the case of the image is still non zero
         
         % smooth image
         d=conv2(single(d),filt,'same') ;
@@ -122,7 +114,7 @@ if any(d(:))  ; %for the case of non zero raw image
                 % d will be noisy on the edges, and also local maxima looks
                 % for nearest neighbors so edge must be at least 1. We'll skip 'edge' pixels.
                 sd=size(d);
-                [x y]=find(d(edg:sd(1)-edg,edg:sd(2)-edg));
+                [x, y]=find(d(edg:sd(1)-edg,edg:sd(2)-edg));
                 
                 % initialize outputs
                 cent=[];%
@@ -131,14 +123,14 @@ if any(d(:))  ; %for the case of non zero raw image
                 x=x+edg-1;
                 y=y+edg-1;
                 for j=1:length(y)
-                    if (d(x(j),y(j))>=d(x(j)-1,y(j)-1 )) &&...
+                    if (d(x(j),y(j))>d(x(j)-1,y(j)-1 )) &&...
                             (d(x(j),y(j))>d(x(j)-1,y(j))) &&...
-                            (d(x(j),y(j))>=d(x(j)-1,y(j)+1)) &&...
+                            (d(x(j),y(j))>d(x(j)-1,y(j)+1)) &&...
                             (d(x(j),y(j))>d(x(j),y(j)-1)) && ...
                             (d(x(j),y(j))>d(x(j),y(j)+1)) && ...
-                            (d(x(j),y(j))>=d(x(j)+1,y(j)-1)) && ...
+                            (d(x(j),y(j))>d(x(j)+1,y(j)-1)) && ...
                             (d(x(j),y(j))>d(x(j)+1,y(j))) && ...
-                            (d(x(j),y(j))>=d(x(j)+1,y(j)+1));
+                            (d(x(j),y(j))>d(x(j)+1,y(j)+1));
                         
                         %All these alternatives were slower...
                         %if all(reshape( d(x(j),y(j))>=d(x(j)-1:x(j)+1,y(j)-1:y(j)+1),9,1))
@@ -200,9 +192,7 @@ else % in case raw image is all zeros (dead event)
     if nargout>1 ;  varargout{1}=cent_map; end
     return
 end
-
 %demo mode - no input to the function
 if (nargin < 1); colormap(bone);hold on; plot(cent(1:2:end),cent(2:2:end),'rs');hold off; end
-
 % return binary mask of centroid positions if asked for
 if nargout>1 ;  varargout{1}=cent_map; end
