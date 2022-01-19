@@ -4,7 +4,7 @@ if any( Ang(:)>4 ) % check if Ang is in RAD
     Ang = Ang * pi/180;
 end
 
-qq = ordermatrixglissant_overlap(Ang,10,3);
+qq = order_parameter(Ang,10,3);
 
 [x, y] = detectDefectsFromOrderParameter(qq);
 

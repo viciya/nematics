@@ -1,7 +1,7 @@
 function [x, y] = detectDefectsFromOrderParameter(op)
 
 op_tresh = .5
-f_size = 7;
+f_size = 7
 filt = (fspecial('gaussian', f_size, f_size));
 
 p = FastPeakFind(1-op, 800, filt);

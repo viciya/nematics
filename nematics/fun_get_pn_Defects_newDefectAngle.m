@@ -9,14 +9,16 @@ if any( Ang(:)>4 ) % check if Ang is in RAD
     Ang = Ang * pi/180;
 end
 
-qstep = 10;%15;
-qq = ordermatrixglissant_overlap(Ang, qstep, 3);
-im2 = qq < min(qq(:)) + .23;%0.3;%.2; % make binary image to use regionprops
+% qstep = 10;%15;
+% qq = order_parameter(Ang, qstep, 3);
+% im2 = qq < min(qq(:)) + .23;%0.3;%.2; % make binary image to use regionprops
+% 
+% s = regionprops('table', im2,'centroid');
+% s_x = s.Centroid(:,1);
+% s_y = s.Centroid(:,2);
 
-s = regionprops('table', im2,'centroid');
 r_Circ = 10;
-s_x = s.Centroid(:,1);
-s_y = s.Centroid(:,2);
+[s_x, s_y] = detectDefectsFromAngle(Ang);
 
 TEMP = zeros(2*r_Circ+1, 2*r_Circ+1,10);
 Blank = zeros(size(Ang)+[2*r_Circ, 2*r_Circ]);

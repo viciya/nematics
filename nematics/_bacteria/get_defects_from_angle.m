@@ -1,73 +1,44 @@
-%% RUN EXAMPLE FILES:
+% RUN EXAMPLE FILES:
+%% Load raw image corresponing to angular map
 filepath = '.\example_images\orient\Orient_1_X1.tif'
 Ang = imread(filepath);
-
 [f,name,ext] = fileparts(filepath);
 dir_info  = dir(['.\example_images\raw\*',name(8:end),'.tif']);
 raw_img_path = [dir_info.folder '\' dir_info.name];
-imshow(imread(raw_img_path));; hold on
-
-% qq = ordermatrixglissant_overlap(Ang,10,3);
-% imshow(qq<.25);
-% imshow(qq); 
-
-[xf, yf] = detectDefectsFromAngle(Ang);
-scatter(xf, yf, "filled")
-hold on;
-
-%%
-filepath = 'C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\Orient\Orient_1_X1.tif'
+imshow(imread(raw_img_path)); hold on
+plot_nematic_field(Ang);
+%% Order parameter map from angular map
+filepath = '.\example_images\orient\Orient_1_X1.tif'
 Ang = imread(filepath);
+qq = order_parameter(Ang,10,3);
+imshow(qq); hold on
 
-[f,name,ext] = fileparts(filepath);
-dir_info  = dir(['C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\*\',name(8:end),'.tif']);
-raw_img_path = [dir_info.folder '\' dir_info.name];
-imshow(imread(raw_img_path));; hold on
-
-% qq = ordermatrixglissant_overlap(Ang,10,3);
-% imshow(qq<.25);
-% imshow(qq); 
-
+%% Find defects from order angular map (plotted on of order parameter)
+filepath = '.\example_images\orient\Orient_1_X1.tif'
+Ang = imread(filepath);
+qq = order_parameter(Ang,10,3);
+imshow(qq); hold on
 [xf, yf] = detectDefectsFromAngle(Ang);
 scatter(xf, yf, "filled")
-hold on;
-%%
-[Xu,Yu] = meshgrid(1:size(Ang,2),1:size(Ang,1));
-step = 13; O_len = .7;
-q6 = quiver( ...
-    Xu(1:step:end,1:step:end),Yu(1:step:end,1:step:end),...
-    cos(Ang(1:step:end,1:step:end)),-sin(Ang(1:step:end,1:step:end)), ...
-    O_len ...
-    );
-q6.LineWidth=1; q6.Color = [.7 .7 .7]; q6.ShowArrowHead='off';
-half_width = floor(size(Xu,2)/2);
-q6 = quiver( ...
-    Xu(1:step:end,1:step:half_width),Yu(1:step:end,1:step:half_width),...
-    cos(Ang(1:step:end,1:step:half_width)),-sin(Ang(1:step:end,1:step:half_width)), ...
-    O_len ...
-    );
-q6.LineWidth=1; q6.Color = [.7 .2 .0]; q6.ShowArrowHead='off';
 
-%%
-im2 = qq<.3;
-s = regionprops('table', im2,'centroid');
-s_x = s.Centroid(:,1);
-s_y = s.Centroid(:,2);
-scatter(s.Centroid(:,1),s.Centroid(:,2), "filled")
+%% Classification of +1/2 and -1/2 defects
+filepath = '.\example_images\orient\Orient_1_X1.tif'
+Ang = imread(filepath);
+[f,name,ext] = fileparts(filepath);
+dir_info  = dir(['.\example_images\raw\*',name(8:end),'.tif']);
+raw_img_path = [dir_info.folder '\' dir_info.name];
+imshow(imread(raw_img_path)); hold on
+plot_nematic_field(Ang);
 
-%%
 % Display defects
-try
-    [ps_x, ps_y, plocPsi_vec, ns_x, ns_y, nlocPsi_vec] = ...
-        fun_get_pn_Defects_newDefectAngle(Ang);
-    %         fun_get_pn_Defects_newDefectAngle_blockproc(Ang);
+[ps_x, ps_y, plocPsi_vec, ns_x, ns_y, nlocPsi_vec] = ...
+    fun_get_pn_Defects_newDefectAngle(Ang);
+%         fun_get_pn_Defects_newDefectAngle_blockproc(Ang);
 
-    plot_pdefect_ndefect(ps_x, ps_y, plocPsi_vec,...
-        ns_x, ns_y, nlocPsi_vec);
-    %     fun_defectDraw(ps_x, ps_y, plocPsi_vec);
-catch
-    disp('no defects')
-end
+plot_pdefect_ndefect(ps_x, ps_y, plocPsi_vec,...
+    ns_x, ns_y, nlocPsi_vec);
+%     fun_defectDraw(ps_x, ps_y, plocPsi_vec);
+
 %% 
 % Optical Flow load
 load('C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\OptFlow\1_X1.mat');
