@@ -120,14 +120,15 @@ disp("Done")
 
 %%
 % Get defects in all folder files save positions and angles in .mat file
-MAT_OUTPUT = "C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\pnDefects_circ10_opStep10_Thr023.mat";
+MAT_OUTPUT = "C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\pnDefects_circ10_opStep10_Thr023_XX.mat";
 load(MAT_OUTPUT);
 plength = .08;
 nlength = .05;
 sz = 6;
 line_width = 3;
 
-QUIVER = false;
+QUIVER = true;
+RAW = false;
 
 Ddir = dir('C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\Orient\*.tif');
 folder_main = Ddir(1).folder;
@@ -139,16 +140,18 @@ filesInFolder = size(Ddir,1);
 Ddir = Ddir(reindex);
 defNum = defNum(reindex,:);
 
-for i=1:5%size(Ddir,1)
+for i=1:size(Ddir,1)
     disp(Ddir(i).name);
     filepath = [Ddir(i).folder '\' Ddir(i).name];
     disp(['file: ' num2str(i) ' from: ' num2str(size(Ddir,1))]);
 
-    [f,name,ext] = fileparts(filepath);
-    dir_info  = dir(['C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\*\',name(8:end),'.tif']);
-    raw_img_path = [dir_info.folder '\' dir_info.name];
-    image = imread(raw_img_path);
-    imshow(image); hold on;
+    if RAW
+        [f,name,ext] = fileparts(filepath);
+        dir_info  = dir(['C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\*\',name(8:end),'.tif']);
+        raw_img_path = [dir_info.folder '\' dir_info.name];
+        image = imread(raw_img_path);
+        imshow(image); hold on;
+    end
 %     imshow(ordermatrixglissant_overlap(Ang, 10, 3)<.3); hold on;
 %     im2 = ordermatrixglissant_overlap(Ang, 10, 3);
 %     imshow(im2); hold on;
@@ -159,6 +162,9 @@ for i=1:5%size(Ddir,1)
 
     if QUIVER
         Ang = imread(filepath);
+        if ~RAW
+            imshow(Ang~=0); hold on;
+        end
         [Xu,Yu] = meshgrid(1:size(Ang,2),1:size(Ang,1));
         step = 12; O_len = .7;
         q6 = quiver( ...
@@ -168,13 +174,13 @@ for i=1:5%size(Ddir,1)
             );
         q6.LineWidth=1; q6.Color = [.7 .7 .7]; q6.ShowArrowHead='off';
 
-        half_width = floor(size(Xu,2)/2);
-        q6 = quiver( ...
-            Xu(1:step:end,1:step:half_width),Yu(1:step:end,1:step:half_width),...
-            cos(Ang(1:step:end,1:step:half_width)),-sin(Ang(1:step:end,1:step:half_width)), ...
-            O_len ...
-            );
-        q6.LineWidth=1; q6.Color = [.7 .2 .0]; q6.ShowArrowHead='off';
+%         half_width = floor(size(Xu,2)/2);
+%         q6 = quiver( ...
+%             Xu(1:step:end,1:step:half_width),Yu(1:step:end,1:step:half_width),...
+%             cos(Ang(1:step:end,1:step:half_width)),-sin(Ang(1:step:end,1:step:half_width)), ...
+%             O_len ...
+%             );
+%         q6.LineWidth=1; q6.Color = [.7 .2 .0]; q6.ShowArrowHead='off';
     end
 
     plot_pdefect_ndefect(ps_x, ps_y, plocPsi_vec,...
@@ -183,10 +189,10 @@ for i=1:5%size(Ddir,1)
     
     set(gcf, 'Position', [10 10 floor(size(Ang,2)/1.5)+10 floor(size(Ang,1)/1.5)+10])
     [f,name,ext] = fileparts(filepath);
-    out_path_name = fullfile(f+"2", name +".png");
+    out_path_name = fullfile(f+"1-1", name +".png");
     disp([">", filepath]);
     disp([">", out_path_name]);
-%     saveas(gcf, out_path_name);
+    saveas(gcf, out_path_name);
 % break;
     cla;
 end
