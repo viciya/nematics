@@ -1,9 +1,9 @@
 % RUN EXAMPLE FILES:
 %% Load raw image corresponing to angular map
-filepath = '.\example_images\orient\Orient_1_X1.tif'
+filepath = 'C:\Users\idan1\OneDrive\Desktop\ניסוי\new data\858 or\Orient_1-00354.tif'
 Ang = imread(filepath);
 [f,name,ext] = fileparts(filepath);
-dir_info  = dir(['.\example_images\raw\*',name(8:end),'.tif']);
+dir_info  = dir(['C:\Users\idan1\OneDrive\Desktop\ניסוי\new data\858\*',name(8:end),'.tif']);
 raw_img_path = [dir_info.folder '\' dir_info.name];
 imshow(imread(raw_img_path)); hold on
 plot_nematic_field(Ang);
