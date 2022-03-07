@@ -20,7 +20,9 @@ sys.path.insert(1, self_path)
 
 # %%
 # image_list = glob.glob(r"C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\flow_test\*tif")
-image_list = glob.glob(r"C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\B-sub-sur-minus-in-supernatant-40X-100fps(raw)\*tif")
+# image_list = glob.glob(r"C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\B-sub-sur-minus-in-supernatant-40X-100fps(raw)\*tif")
+image_list = glob.glob(r"C:\Users\USER\Downloads\BEER\March 1st 100fps 40X 50-50 5um gap\1_X*.tif")
+
 
 from natsort import natsorted
 image_list = natsorted(image_list, key=lambda y: y.lower())
@@ -31,7 +33,7 @@ SAVE = True
 x, y = 0, 0
 win1, win2 = 600, 600
 
-for (i,im1), im2 in zip(enumerate(image_list[:100]),image_list[1:101]):
+for (i,im1), im2 in zip(enumerate(image_list[:-1]),image_list[1:]):
 
     # img1 = cv2.imread(im1)[:,:,0]
     # img2 = cv2.imread(im2)[:,:,0]
@@ -66,10 +68,11 @@ for (i,im1), im2 in zip(enumerate(image_list[:100]),image_list[1:101]):
     
     if SAVE:
         save_path = os.path.join(
-            os.path.dirname(os.path.dirname(image_list[i])), 
+            os.path.dirname(image_list[i]), 
             'OptFlow', 
             os.path.splitext(os.path.basename(image_list[i]))[0] + '.mat'
             )
+        # break
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         scipy.io.savemat(save_path, dict(u=flow[:,:,0], v=flow[:,:,1]))
         # "C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\OptFlow\test.mat"

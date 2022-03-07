@@ -30,3 +30,11 @@ while (i<list.length) {
     i = i+1; 
 }
 
+//myDir = getDirectory("Choose Source Directory ");
+//print(myDir+"orient");
+//File.makeDirectory(myDir+"orient");
+//if (!File.exists(myDir))
+//  exit("Unable to create directory");
+//print("");
+//print(myDir);
+

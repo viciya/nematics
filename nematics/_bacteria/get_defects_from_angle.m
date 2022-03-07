@@ -64,18 +64,23 @@ saveas(gcf,'C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\Or
 
 %%
 % Get defects in all folder files save positions and angles in .mat file
-MAT_OUTPUT = "C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\pnDefects_circ10_opStep10_Thr023_XX.mat";
+MAT_OUTPUT = "C:\Users\USER\Downloads\BEER\March 1st 100fps 40X 50-50 5um gap\SUMMARY.mat";
 
-SAVE = false; % if true figure will be saved into "Orient1" folder
+SAVE = true; % if true figure will be saved into "Orient1" folder
 
-Ddir = dir('C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\Orient\*.tif');
+Ddir = dir('C:\Users\USER\Downloads\BEER\March 1st 100fps 40X 50-50 5um gap\orient\*.tif');
 folder_main = Ddir(1).folder;
 filesInFolder = size(Ddir,1);
 defNum = cell(size(Ddir,1),6);
 
+% sort by file names
+[~, reindex] = sort_nat({Ddir.name}); 
+Ddir = Ddir(reindex);
+defNum = defNum(reindex,:);
+
 for i=1:size(Ddir,1)
     filepath = [Ddir(i).folder '\' Ddir(i).name];
-    disp(['file: ' num2str(i) ' from: ' num2str(size(Ddir,1))]);
+    disp(['file: ' num2str(i) ' from: ' num2str(size(Ddir,1)) '  ' Ddir(i).name]);
 
     Ang = imread(filepath);
 
@@ -89,7 +94,7 @@ for i=1:size(Ddir,1)
         disp('no defects')
     end
 
-    if SAVE
+    if SAVE & i<200
         % its just white background
         % to make image of same size of the raw image
         imshow(Ang~=0); hold on;
