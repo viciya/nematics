@@ -1,11 +1,11 @@
   %%
-dir_info_orient  = dir('C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\Orient\*.tif');
+dir_info_orient  = dir('C:\Users\USER\Downloads\BEER\March 1st 100fps 40X 50-50 5um gap\orient\*.tif');
 [~, reindex] = sort_nat({dir_info_orient.name});
 dir_info_orient = dir_info_orient(reindex);
 
 % 'C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\Orient\Orient_1_X1.tif'
 
-load('C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\pnDefects_circ10_opStep10_Thr023.mat')
+load("C:\Users\USER\Downloads\BEER\March 1st 100fps 40X 50-50 5um gap\SUMMARY.mat")
 defNum = defNum(reindex,:);
 
 
@@ -19,20 +19,20 @@ sub_PIV_u = zeros(2*s_box+1);
 sub_PIV_v = zeros(2*s_box+1);
 
 total_count = 0;
-for n = 1:99
+for n = 1:10
     orient_filepath = [dir_info_orient(n).folder '\' dir_info_orient(n).name];
     ang = imread(orient_filepath);
     [l,w] = size(ang);
 
     [f,name,ext] = fileparts(orient_filepath);
-    dir_info_flow  = dir(['C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\*\',name(8:end),'.mat']);
+    dir_info_flow  = dir(['C:\Users\USER\Downloads\BEER\March 1st 100fps 40X 50-50 5um gap\*\',name(8:end),'.mat']);
     vel_filepath = [dir_info_flow.folder '\' dir_info_flow.name];
     load(vel_filepath);
 
 %     [ps_x, ps_y, plocPsi_vec, ns_x, ns_y, nlocPsi_vec] = fun_get_pn_Defects_newDefectAngle(ang);
     [ps_x, ps_y, plocPsi_vec, ns_x, ns_y, nlocPsi_vec] = deal(defNum{n,:});
 %%
-plus = false;
+plus = true;
 if plus
     s_x = ps_x;
     s_y = ps_y;
@@ -43,8 +43,8 @@ else
     locPsi_vec = nlocPsi_vec;
 end
 
-box = 200;
-s_box = floor(sqrt(box^2/2));
+% box = 200;
+% s_box = floor(sqrt(box^2/2));
 % i = 10;
 % rectangle('Position', [ps_x(i) ps_x(i) s_box s_box])
 
@@ -198,12 +198,12 @@ axis off;
 hold off
 
 
-figure();
+figure(222);
 [u_x,u_y] = gradient(sub_PIV_u);%/dx gradient need to be corrected for the dx
 [v_x,v_y] = gradient(sub_PIV_v);%/dx
 vorticity = (v_x - u_y);%------------------- OPTION1
 divV = (u_x + v_y);%----- OPTION2
-filtN = 1;
+filtN = 30;
 filt = fspecial('gaussian',filtN,filtN);
 u1 = imfilter(vorticity, filt);
 surf(Xu(1:1:ff,1:1:ff),Yu(1:1:ff,1:1:ff),u1-10);
@@ -224,12 +224,12 @@ p2 = plot3(round(ff/2),round(ff/2),40,'o','MarkerFaceColor',[0 0 0]);
 p2.MarkerSize = 10;
 p2.MarkerEdgeColor= 'none';
 
-figure();
+figure(333);
 [u_x,u_y] = gradient(sub_PIV_u);%/dx gradient need to be corrected for the dx
 [v_x,v_y] = gradient(sub_PIV_v);%/dx
 vorticity = (v_x - u_y);%------------------- OPTION1
 divV = (u_x + v_y);%----- OPTION2
-filtN = 1;
+filtN = filtN;
 filt = fspecial('gaussian',filtN,filtN);
 u1 = imfilter(divV, filt);
 surf(Xu(1:1:ff,1:1:ff),Yu(1:1:ff,1:1:ff),u1-10);
@@ -250,7 +250,7 @@ p2 = plot3(round(ff/2),round(ff/2),40,'o','MarkerFaceColor',[0 0 0]);
 p2.MarkerSize = 10;
 p2.MarkerEdgeColor= 'none';
 
-figure();
+figure(444);
 u1 = imfilter(sub_PIV_u, 10);
 surf(u1);
 view(2); shading interp; colormap jet; axis equal; axis tight; hold on
