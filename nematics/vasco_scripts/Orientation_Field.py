@@ -3,6 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from skimage import feature
+import sys
+import os
+
+sys.path.insert(1, os.path.dirname(os.getcwd()))
 
 
 def orientation_analysis(img, sigma):
@@ -29,14 +33,14 @@ def orientation_analysis(img, sigma):
 
 # %%
 data_path = r'C:\Users\USER'
-plot_path = r'D:\Scientific_data\Plots'
 
 # file = r'\4.jpg'
 # file = r"\CODES\nematics\example_images\raw\1_X1.tif"
-file = r"\Downloads\BEER\pep 858\1-20\1-0001.tif"
+file = r"..\example_images\raw\1_X1.tif"
+# file = r"\Downloads\BEER\pep 858\1-20\1-0001.tif"
 
 # TODO works only for reqtangular images.
-img = plt.imread(data_path + file)#[:,:900]
+img = plt.imread(file)#[:,:900]
 img = img[-np.min(img.shape):,-np.min(img.shape):]
 
 ori, coh, E = orientation_analysis(img, 12)
