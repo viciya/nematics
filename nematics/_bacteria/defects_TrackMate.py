@@ -1,5 +1,6 @@
 # %%
 import numpy as np
+np.seterr(divide='ignore', invalid='ignore')
 import matplotlib.pyplot as plt
 import cv2
 import os
@@ -52,7 +53,7 @@ msd = []
 handness = []
 phi = []
 fig, axs = plt.subplots(1,1, figsize=(5,5))
-for i,t_id in enumerate(tracks_ids[3:]):
+for i,t_id in enumerate(tracks_ids[:]):
     # if i>0 and i<1000:
     idx = spots["TRACK_ID"]==t_id
     frame_idx = spots["FRAME"][spots["TRACK_ID"]==t_id].argsort()
@@ -85,7 +86,7 @@ for i,t_id in enumerate(tracks_ids[3:]):
         v1 = a[:-1]/np.linalg.norm(a[:-1], axis=1).reshape(-1,1)
         v2 = a[1:]/np.linalg.norm(a[1:], axis=1).reshape(-1,1)
         cross = np.cross(v1, v2) 
-        handness.append(np.mean(cross)/len(cross))
+        handness.append(np.arcsin(np.mean(cross))/len(cross))
 
         # show trajectory handness example
         PLOT_TRAJ = False
@@ -94,14 +95,15 @@ for i,t_id in enumerate(tracks_ids[3:]):
             v2 = a[1:]/np.linalg.norm(a[1:], axis=1).reshape(-1,1)
             cross = np.cross(v1, v2)
             for xi,yi, c in zip(x[1:]-x0, y[1:]-y0, cross):            
-                if c<.1:
+                if c<-.1:
                     axs.plot(xi,yi, marker='$R$', c="red")
-                    axs.text(xi+1,yi, "{:.1f}".format(c), color="red")
+                    axs.text(xi+1,yi, "{:.1f}".format(np.arcsin(c)*180/np.pi), color="red")
                 elif c>.1:
                     axs.plot(xi,yi, marker='$L$', c="blue")
-                    axs.text(xi,yi, "{:.1f}".format(c), color="blue")
+                    axs.text(xi,yi, "{:.1f}".format(np.arcsin(c)*180/np.pi), color="blue")
   
             plt.title("$Mean ~Cross ~Prod.~$"+ "{:.3f}".format(np.nanmean(cross)))
+            plt.grid(True)
             break
 
         # plt.figure()
@@ -125,13 +127,15 @@ plt.gca().set_aspect('equal', 'box')
 plt.tight_layout()
 
 
-plt.figure(figsize=(6,3))
-plt.hist(handness, 30, range=(-.1,.1), rwidth=.9, 
-    label="$N_{trajectories}=$"+str(len(handness)), alpha=.8)
+plt.figure(figsize=(6,4))
+plt.hist(np.array(handness)*180/np.pi, 30, range=(-4.5,4.5), rwidth=.9, 
+    label="$N_{trajectories}=$"+"{}\n $Bias=${:.2f}$^o/frame$".format(
+        len(handness), np.nanmean(handness)*180/np.pi
+        ), alpha=.8)
 plt.legend(loc="best", fontsize=10)
-plt.xlabel(r"$\frac{\Delta D_t\ ~\times ~\Delta D_{t+1}}{||D_t||~||D_{t+1}||}$", fontsize=20)
+plt.xlabel(r"$\theta~(deg^o)=sin^{-1}(\frac{\Delta D_t\ ~\times ~\Delta D_{t+1}}{||D_t||~||D_{t+1}||})$", fontsize=20)
 plt.ylabel("$Number ~of ~Tracks$\n $~(>$"+str(DURATION_MINIMUM)+"$ ~frames)$", fontsize=16)
-plt.title("$Mean ~angle ~bias.~$"+ "{:.2f}$\pm${:.2f}".format(
+plt.title("$Mean ~angle ~bias.~$"+ "{:.2f}$^o$ $\pm${:.2f}$^o$ $~per ~step$".format(
     np.nanmean(handness)*180/np.pi, np.nanstd(handness)*180/np.pi/len(handness)**.5))
 plt.tight_layout()
 # plt.figure(figsize=(5,5))        
@@ -455,5 +459,5 @@ df = pd.DataFrame({
     'mean velocity (mic/hour)': sc*4*1.8* c,
     'NEAREST CRISSCROSS REGION': 1.7* dists[:,0]
                    })
-pd.DataFrame(df).to_excel(r"C:\Users\USER\Downloads\defects_mov1.xlsx")
+# pd.DataFrame(df).to_excel(r"C:\Users\USER\Downloads\defects_mov1.xlsx")
 
