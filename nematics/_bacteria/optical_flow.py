@@ -27,7 +27,7 @@ image_list = glob.glob(r"C:\Users\USER\Downloads\BEER\March 1st 100fps 40X 50-50
 from natsort import natsorted
 image_list = natsorted(image_list, key=lambda y: y.lower())
 # %%
-PLOT  = False
+PLOT  = True
 SAVE = True
 
 x, y = 0, 0
@@ -75,7 +75,7 @@ for (i,im1), im2 in zip(enumerate(image_list[:-1]),image_list[1:]):
         # "C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\OptFlow\test.mat"
 
 
-    # break
+    break
 
 
 
