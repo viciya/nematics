@@ -64,11 +64,11 @@ saveas(gcf,'C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\Or
 
 %%
 % Get defects in all folder files save positions and angles in .mat file
-MAT_OUTPUT = "C:\Users\USER\Downloads\BEER\March 1st 100fps 40X 50-50 5um gap\SUMMARY.mat";
+MAT_OUTPUT = "C:\Users\USER\Downloads\BEER\March 1st 100fps 40X 50-50 1um gap\SUMMARY.mat";
 
 SAVE = true; % if true figure will be saved into "Orient1" folder
 
-Ddir = dir('C:\Users\USER\Downloads\BEER\March 1st 100fps 40X 50-50 5um gap\orient\*.tif');
+Ddir = dir('C:\Users\USER\Downloads\BEER\March 1st 100fps 40X 50-50 1um gap\orient\*.tif');
 folder_main = Ddir(1).folder;
 filesInFolder = size(Ddir,1);
 defNum = cell(size(Ddir,1),6);
@@ -76,7 +76,7 @@ defNum = cell(size(Ddir,1),6);
 % sort by file names
 [~, reindex] = sort_nat({Ddir.name}); 
 Ddir = Ddir(reindex);
-defNum = defNum(reindex,:);
+
 
 for i=1:size(Ddir,1)
     filepath = [Ddir(i).folder '\' Ddir(i).name];
@@ -94,7 +94,7 @@ for i=1:size(Ddir,1)
         disp('no defects')
     end
 
-    if SAVE & i<200
+    if SAVE & i<0
         % its just white background
         % to make image of same size of the raw image
         imshow(Ang~=0); hold on;
@@ -125,7 +125,7 @@ disp("Done")
 
 %%
 % Get defects in all folder files save positions and angles in .mat file
-MAT_OUTPUT = "C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\pnDefects_circ10_opStep10_Thr023_XX.mat";
+MAT_OUTPUT = "C:\Users\USER\Downloads\BEER\March 1st 100fps 40X 50-50 1um gap\SUMMARY.mat";
 load(MAT_OUTPUT);
 plength = .08;
 nlength = .05;
@@ -135,7 +135,7 @@ line_width = 3;
 QUIVER = true;
 RAW = false;
 
-Ddir = dir('C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\Orient\*.tif');
+Ddir = dir('C:\Users\USER\Downloads\BEER\March 1st 100fps 40X 50-50 1um gap\orient\*.tif');
 folder_main = Ddir(1).folder;
 filesInFolder = size(Ddir,1);
 
@@ -143,7 +143,7 @@ filesInFolder = size(Ddir,1);
 % sort by file names
 [~, reindex] = sort_nat({Ddir.name}); 
 Ddir = Ddir(reindex);
-defNum = defNum(reindex,:);
+
 
 for i=1:size(Ddir,1)
     disp(Ddir(i).name);
@@ -152,7 +152,7 @@ for i=1:size(Ddir,1)
 
     if RAW
         [f,name,ext] = fileparts(filepath);
-        dir_info  = dir(['C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\*\',name(8:end),'.tif']);
+        dir_info  = dir(['C:\Users\USER\Downloads\BEER\March 1st 100fps 40X 50-50 1um gap\*\',name(8:end),'.tif']);
         raw_img_path = [dir_info.folder '\' dir_info.name];
         image = imread(raw_img_path);
         imshow(image); hold on;
@@ -192,16 +192,18 @@ for i=1:size(Ddir,1)
         ns_x, ns_y, nlocPsi_vec,...
         plength, nlength, sz, line_width);
     
-    set(gcf, 'Position', [10 10 floor(size(Ang,2)/1.5)+10 floor(size(Ang,1)/1.5)+10])
+    set(gcf, 'Position', [10 10 floor(.45*size(Ang,2))+10 floor(.45*size(Ang,1))+10])
     [f,name,ext] = fileparts(filepath);
-    out_path_name = fullfile(f+"1-1", name +".png");
+    out_path_name = fullfile(f+"1", name +".png");
     disp([">", filepath]);
     disp([">", out_path_name]);
+    axis on
     saveas(gcf, out_path_name);
-% break;
+
+
     cla;
 end
-% save(MAT_OUTPUT, 'defNum')
+
 disp("Done")
 %%
 % sort by file names
