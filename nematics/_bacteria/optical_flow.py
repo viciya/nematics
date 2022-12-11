@@ -22,13 +22,14 @@ sys.path.insert(1, self_path)
 # image_list = glob.glob(r"C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\flow_test\*tif")
 # image_list = glob.glob(r"C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\B-sub-sur-minus-in-supernatant-40X-100fps(raw)\*tif")
 # image_list = glob.glob(r"C:\Users\USER\Downloads\BEER\March 1st 100fps 40X 50-50 5um gap\1_X*.tif")
-image_list = glob.glob(r"C:\Users\USER\Downloads\BEER\March 1st 100fps 40X 50-50 1um gap\1_X*.tif")
+# image_list = glob.glob(r"C:\Users\USER\Downloads\BEER\March 1st 100fps 40X 50-50 1um gap\1_X*.tif")
+image_list = glob.glob(r"D:\work\nematics\nematics\nematics\_bacteria\hbec_images\raw\test_flow\*tif")
 
 from natsort import natsorted
 image_list = natsorted(image_list, key=lambda y: y.lower())
 # %%
 PLOT  = True
-SAVE = True
+SAVE = False
 
 x, y = 0, 0
 win1, win2 = 600, 600
@@ -45,7 +46,7 @@ for (i,im1), im2 in zip(enumerate(image_list[:-1]),image_list[1:]):
 
 
     flow = cv2.calcOpticalFlowFarneback(img1,img2, None, 0.5, 3, 
-        winsize=15, iterations=3, poly_n=5, poly_sigma=1.2, flags=0)
+        winsize=61, iterations=3, poly_n=5, poly_sigma=1.2, flags=0)
 
     if PLOT:
         fig = plt.figure(figsize=(15,10))
@@ -75,7 +76,7 @@ for (i,im1), im2 in zip(enumerate(image_list[:-1]),image_list[1:]):
         # "C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\OptFlow\test.mat"
 
 
-    break
+    # break
 
 
 
