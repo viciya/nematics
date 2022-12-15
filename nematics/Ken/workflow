@@ -1,0 +1,110 @@
+# import torch
+# import torchvision
+import scipy as sp
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import cv2
+from skimage import feature, measure, restoration
+from defects import *
+
+class workflow:
+    """
+    this class is ment to be activated to automaticly apply analisys process to 
+    image/ video.
+
+    parameters
+    ---------
+    path :  str
+        path to file/folder in case of many
+
+    window_size : int default = 40
+        square window size of size window_size
+
+    one_image : bool, default = True
+        for processing with one image only
+
+    image : default = None
+        for processing given image
+
+    resize_image :tuple, default = None TODO: chack if size is only square
+        size for image resize to speedup processing time
+        
+
+    
+
+
+
+
+
+    """
+
+    def __init__(
+        self,
+        path,
+        window_size = 40, 
+        one_image = True,
+        resize_image = None ) -> None:
+        
+        self.path = path
+        self.window_size = window_size
+        self.one_image = one_image
+        self.image = None
+        self.resize_image = resize_image
+        
+
+
+    def fetch_data(self): 
+        """
+        fetches the data into self images
+        """
+        if self.one_image:
+            img = plt.imread(self.path)
+            self.image = img[-np.min(img.shape):,-np.min(img.shape):]
+
+        else:
+            # TODO: need to fetch few images for video analisys
+            #batch size might be needed
+            pass
+
+        
+
+    def detect_minus_plus(self):
+        """
+        detects the defects as -0.5/ +0.5
+
+        returns
+        -------
+        plushalf : pd.DataFrame
+            df of plus half defects detected
+
+        minushalf : pd.DataFrame
+            df of minus half defects detected
+
+        """
+        if self.resize_image:
+                
+            self.image = cv2.resize(self.image, dsize = self.resize_image)
+
+
+        
+
+        pix_x = self.image.shape[1]
+        pix_y = self.image.shape[0]
+
+        x = np.arange(0,pix_x)
+        y = np.arange(0,pix_y)
+
+        xx, yy = np.meshgrid(x, y)
+
+
+        ori, coh, E = orientation_analysis(self.image, self.window_size)
+        k = compute_topological_charges(ori, int_area='cell', origin='upper')
+        defects = localize_defects(k, x_grid=xx, y_grid=yy)
+        compute_defect_orientations(ori, defects)
+        plushalf = defects[defects['charge']==.5]
+        minushalf = defects[defects['charge']==-.5]
+        
+        return plushalf, minushalf
+                    
+
