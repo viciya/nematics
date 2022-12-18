@@ -47,15 +47,16 @@ class workflow:
         
         self.path = folder_path
         self.window_size = window_size
-        self.images = []
-        self.resize_image = resize_image
         
+        self.resize_image = resize_image
+        self.fetch_data()
 
 
     def fetch_data(self): 
         """
         fetches the data into self images
         """
+        self.images =[]
         image_list = glob.glob(self.path)
         image_list = natsorted(image_list, key=lambda y: y.lower())
 
@@ -88,16 +89,19 @@ class workflow:
             plus['from_img'] = img_idx
             minus['from_img'] = img_idx
 
-            pd.concat([plushalf, plus])
-            pd.concat([minushalf, minus])
+            plushalf = pd.concat([plushalf, plus])
+            minushalf = pd.concat([minushalf, minus])
 
 
         return plushalf, minushalf
                     
 
+    def __repr__(self) -> str:
+        return f"workflow : \n  number of images = {len(self.images)}"
+
 class image:
     
-    def __init__(self, path, resize_image, window_size = 40):
+    def __init__(self, path, resize_image= None, window_size = 40):
         
         self.img = plt.imread(path)
         self.window_size = window_size
