@@ -25,19 +25,10 @@ class workflow:
     window_size : int default = 40
         square window size of size window_size
 
-    one_image : bool, default = True
-        for processing with one image only
-
-    image : default = None
-        for processing given image
-
     resize_image :tuple, default = None TODO: chack if size is only square
         size for image resize to speedup processing time
-        
-
-
-
     """
+
 
     def __init__(
         self,
@@ -79,8 +70,8 @@ class workflow:
 
         minushalf : pd.DataFrame
             df of minus half defects detected
-
         """
+        
         plushalf, minushalf = pd.DataFrame(),pd.DataFrame()
         for img_idx, img in enumerate(self.images):
             
@@ -99,8 +90,28 @@ class workflow:
     def __repr__(self) -> str:
         return f"workflow : \n  number of images = {len(self.images)}"
 
+
+
+
+
 class image:
-    
+    """  
+    this class is ment to be activated to automaticly apply analisys process to 
+    a single image.
+
+    parameters
+    ---------
+    path :  str
+        path to file 
+
+    window_size : int default = 40
+        square window size of size window_size
+
+    resize_image :tuple, default = None TODO: chack if size is only square
+        size for image resize to speedup processing time
+        """
+
+
     def __init__(self, path, resize_image= None, window_size = 40):
         
         self.img = plt.imread(path)
