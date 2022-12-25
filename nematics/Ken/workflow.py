@@ -34,10 +34,12 @@ class workflow:
         self,
         folder_path,
         window_size = 40, 
-        resize_image = None ) -> None:
+        resize_image = None,
+        save = False ) -> None:
         
         self.path = folder_path
         self.window_size = window_size
+        self.save = save
         
         self.resize_image = resize_image
         self.fetch_data()
@@ -83,6 +85,10 @@ class workflow:
             plushalf = pd.concat([plushalf, plus])
             minushalf = pd.concat([minushalf, minus])
 
+        if self.save:
+            plushalf[['charge', 'x','y','ang1']].to_csv(self.path + r"\csv\PlusHalf")
+            minushalf[['charge', 'x','y','ang1','ang2','ang3']].to_csv(
+                self.path + r"\csv\MinusHalf")
 
         return plushalf, minushalf
                     
