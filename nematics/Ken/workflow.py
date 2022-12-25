@@ -12,7 +12,7 @@ import glob
 
 
 
-class workflow:
+class image_series:
     """
     this class is ment to be activated to automaticly apply analisys process to 
     image/ video.
@@ -54,7 +54,10 @@ class workflow:
         image_list = natsorted(image_list, key=lambda y: y.lower())
 
         for image_path in image_list:
-            self.images.append( image( image_path))
+            self.images.append( image( 
+                image_path,
+                self.resize_image,
+                self.window_size))
 
 
         
@@ -77,18 +80,29 @@ class workflow:
         plushalf, minushalf = pd.DataFrame(),pd.DataFrame()
         for img_idx, img in enumerate(self.images):
             
+            name = img.name
             plus, minus= img.detect_minus_plus()
+            if self.save:
             
-            plus['from_img'] = img_idx
-            minus['from_img'] = img_idx
+            #save single image 
+
+                plus[['charge', 'x','y','ang1']].to_csv(self.path + r"\\csv\\" +name + '_PlusHalf.csv')
+                minus[['charge', 'x','y','ang1','ang2','ang3']].to_csv(
+                    self.path + r"\\csv\\" + name + '_MinusHalf.csv')
+             
+            #add to total DF
+            plus['from_img'] = name
+            minus['from_img'] = name
 
             plushalf = pd.concat([plushalf, plus])
             minushalf = pd.concat([minushalf, minus])
 
         if self.save:
-            plushalf[['charge', 'x','y','ang1']].to_csv(self.path + r"\csv\PlusHalf")
-            minushalf[['charge', 'x','y','ang1','ang2','ang3']].to_csv(
-                self.path + r"\csv\MinusHalf")
+            plushalf[['from_img','charge', 'x','y','ang1']].to_csv(self.path + r"\csv\PlusHalf.csv")
+            minushalf[['from_img','charge', 'x','y','ang1','ang2','ang3']].to_csv(
+                self.path + r"\csv\MinusHalf.csv")
+
+            
 
         return plushalf, minushalf
                     
@@ -119,7 +133,7 @@ class image:
 
 
     def __init__(self, path, resize_image= None, window_size = 40):
-        
+        self.name = path.split('\\')[-1]
         self.img = plt.imread(path)
         self.window_size = window_size
 
@@ -159,6 +173,8 @@ class image:
         compute_defect_orientations(ori, defects)
         plushalf = defects[defects['charge']==.5]
         minushalf = defects[defects['charge']==-.5]
+
+        
         
         return plushalf, minushalf
                     
