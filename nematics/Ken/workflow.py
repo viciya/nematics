@@ -48,7 +48,7 @@ class workflow:
         fetches the data into self images
         """
         self.images =[]
-        image_list = glob.glob(self.path)
+        image_list = glob.glob(self.path + r"\*tif")
         image_list = natsorted(image_list, key=lambda y: y.lower())
 
         for image_path in image_list:
