@@ -1,0 +1,12 @@
+nematics/Ken/IO/raw_images/hbec/Trans__s2_0000.tif
+nematics/Ken/IO/raw_images/hbec/Trans__s2_0001.tif
+nematics/Ken/IO/raw_images/hbec/Trans__s2_0002.tif
+nematics/Ken/IO/raw_images/hbec/*.tif
+nematics/Ken/IO/raw_images/hbec/csv/*.csv
+nematics/Ken/IO/raw_images/test/*
+nematics/Ken/IO/raw_images/velocity/*
+nematics/_bacteria/hbec_images/raw/test_flow/flow_0.png
+nematics/_bacteria/hbec_images/raw/test_flow/flow_1.png
+nematics/_bacteria/hbec_images/raw/test_flow/Trans__281.tif
+nematics/_bacteria/hbec_images/raw/test_flow/Trans__290.tif
+nematics/_bacteria/hbec_images/raw/test_flow/Trans__299.tif
