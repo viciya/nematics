@@ -24,10 +24,12 @@ class image_series:
         path to file/folder in case of many
 
     window_size : int default = 40
-        square window size of size window_size
+        square window size of size window_size.
 
     resize_image :tuple, default = None TODO: chack if size is only square
-        size for image resize to speedup processing time
+        size for image resize to speedup processing time.
+    save_defects : 
+    save_flow :
     """
 
 
@@ -42,10 +44,14 @@ class image_series:
         
         self.path = folder_path
         self.window_size = window_size
-        self.save = save_defects
+        self.save_defects = save_defects
         self.save_flow = save_flow
         self.resize_image = resize_image
         self.fetch_data()
+
+
+    def controller(self): #here right now, will probably be a class 
+        pass
 
 
     def fetch_data(self): 
@@ -64,6 +70,9 @@ class image_series:
 
 
         
+    def calc_orientation(self):
+        pass
+
 
     def detect_minus_plus(self):
         """
@@ -72,15 +81,16 @@ class image_series:
 
         returns
         -------
-        plushalf : pd.DataFrame
+        tuple : (PlusHalf, MinusHalf)
+        PlusHalf : pd.DataFrame
             df of plus half defects detected
             columns =[]TODO add columns 
 
-        minushalf : pd.DataFrame
+        MinusHalf : pd.DataFrame
             df of minus half defects detected
         """
         
-        plushalf, minushalf = pd.DataFrame(),pd.DataFrame()
+        PlusHalf, MinusHalf = pd.DataFrame(),pd.DataFrame()
         for img_idx, img in enumerate(self.images):
             
             name = img.name
@@ -97,17 +107,17 @@ class image_series:
             plus['from_img'] = name
             minus['from_img'] = name
 
-            plushalf = pd.concat([plushalf, plus])
-            minushalf = pd.concat([minushalf, minus])
+            PlusHalf = pd.concat([PlusHalf, plus])
+            MinusHalf = pd.concat([MinusHalf, minus])
 
         if self.save_defects:
-            plushalf[['from_img','charge', 'x','y','ang1']].to_csv(self.path + r"\csv\PlusHalf.csv")
-            minushalf[['from_img','charge', 'x','y','ang1','ang2','ang3']].to_csv(
+            PlusHalf[['from_img','charge', 'x','y','ang1']].to_csv(self.path + r"\csv\PlusHalf.csv")
+            MinusHalf[['from_img','charge', 'x','y','ang1','ang2','ang3']].to_csv(
                 self.path + r"\csv\MinusHalf.csv")
 
             
 
-        return plushalf, minushalf
+        return PlusHalf, MinusHalf#,orientaion# save as tif #32bit
                     
 
     def __repr__(self) -> str:
@@ -158,10 +168,33 @@ class image_series:
 
 
 
-        return None#big_arr
+        return None #big_arr
             
 
         
+
+    
+    def crop_and_tilt(self, defects_df = None, flow_array = None):
+        """
+        for each defect, cropes a window around it and tilts it and the 
+        flow around it.
+
+        """
+        
+        #TODO: should consider batches
+
+        if(defects_df is None):
+            defects_df = self.detect_minus_plus()
+
+        if(flow_array is None):
+            flow_array = self.get_flow()
+
+        
+        
+
+
+        pass
+
 
 
 
@@ -218,7 +251,7 @@ class image:
         xx, yy = np.meshgrid(x, y)
 
 
-        ori, coh, E = orientation_analysis(self.img, self.window_size)
+        ori, coh, E = orientation_analysis(self.img, self.window_size) #TODO change to different function 
         k = compute_topological_charges(ori, int_area='cell', origin='upper')
         defects = localize_defects(k, x_grid=xx, y_grid=yy)
         compute_defect_orientations(ori, defects)
@@ -227,7 +260,11 @@ class image:
 
         
         
-        return plushalf, minushalf
+        return plushalf, minushalf, ori
 
-    
+
+
+    def calc_orientation(self):
+        pass
+
                     
