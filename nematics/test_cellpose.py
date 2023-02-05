@@ -83,10 +83,11 @@ for raw in raw_list:
     mask_list.append(mask_path)
 
 # %% Tracking Data Analysis
-track_path = r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\Tracking\spots_100_200.csv"
+track_path = r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\Tracking\spots_100_300.csv"
 track_df = pd.read_csv(track_path, skiprows=[1,2,3]).reset_index()
 track_df = track_df.drop(columns=['MANUAL_SPOT_COLOR']).dropna()
-# track_df["DIVIDING"][track_df["POSITION_T"]==0] = 0
+track_df["DIVIDING"] = 0
+track_df["INTENSITY"] = 0
 track_df.head
 # %%
 # plt.hist(track_df["AREA"][:], bins=60, rwidth=.8, range=[0,4000], density=True)
@@ -121,25 +122,27 @@ r_max = track_df[parameter].max()
 
 
 # %% show segmentation on overlay
-num = 100 #first frame of TrackMate file
+num = 99 #first frame of TrackMate file
 for (frame, r), m in zip(enumerate(raw_list[num:]), mask_list[num:]):
+    print(r)
     # seg = np.load(m, allow_pickle=True).item()
     # masks = seg['masks'].squeeze()
     masks = cv2.imread(m,flags=cv2.IMREAD_ANYDEPTH)
     x_cent, y_cent, label_num = find_centers(masks)
     # plt.figure()
     image = cv2.imread(r)[:,:,0]
-    # plt.imshow(image, cmap="gray", alpha=1.)
-    # plt.imshow(label2rgb(masks, bg_label=0), alpha=0.6)
-    # plt.plot(x_cent, y_cent, '*', color="white", alpha=.3) 
+    plt.imshow(image, cmap="gray", alpha=1.)
+    # plt.imshow(label2rgb(masks, bg_label=0), alpha=0.3)
+    plt.plot(x_cent, y_cent, '*', color="white", alpha=.3) 
 
-    cell_idx = track_df[track_df["POSITION_T"]==frame+1].index#(track_df["POSITION_T"]==num-99)
+    cell_idx = track_df[track_df["POSITION_T"]==frame].index#(track_df["POSITION_T"]==num-99)
     
     xr = track_df["POSITION_X"][cell_idx]
     yr = track_df["POSITION_Y"][cell_idx]
     radi = track_df["RADIUS"][cell_idx]
-    track_df["DIVIDING"][cell_idx] = -1
+    # track_df["DIVIDING"][cell_idx] = -1
     # plt.plot(xr, yr, '*', color="red", alpha=1) 
+
 
     # Register btw points (x,y) of two arrays
     # xy_seg[idx[:n]] == xy_track[:n]
@@ -151,27 +154,35 @@ for (frame, r), m in zip(enumerate(raw_list[num:]), mask_list[num:]):
         ) 
 
     intensity = brightness(image, masks, label_num)
+    track_df["INTENSITY"][cell_idx] = np.array(intensity)[idx]
 
-    idx1 = np.array(intensity)>1.2 # looks like a good threshold
-    xy_seg1 = np.hstack([xy_seg,idx1.reshape(-1,1)]) #xy pos + True/False round cell
+    # idx1 = np.array(intensity)>1.2 # looks like a good threshold
+    # xy_seg1 = np.hstack([xy_seg, idx1.reshape(-1,1)]) #xy pos + True/False round cell
     # plt.plot(xy_seg[idx1,0], xy_seg[idx1,1], '*', color="green", alpha=1) 
 
-    idx_r = center_pairs(
-        xy_track, #Long Array
-        xy_seg1[idx1,:2] #Short Array
-        ) 
+    # idx_r = center_pairs(
+    #     xy_track, #Long Array
+    #     xy_seg1[idx1,:2] #Short Array
+    #     ) 
 
-    track_df["DIVIDING"][cell_idx[idx_r]] = 1
-    id = track_df["DIVIDING"][track_df["DIVIDING"]==1].index
-    # plt.plot(track_df["POSITION_X"][id], track_df["POSITION_Y"][id], '*', color="red", alpha=1) 
+    # track_df["DIVIDING"][cell_idx[idx_r]] = 1
+    # track_df["INTENSITY"][cell_idx] = np.array(intensity)[idx]
+    # np.unique(track_df["DIVIDING"][track_df["INTENSITY"]!=0], return_counts=True)
+    # track_df["INTENSITY"][track_df["DIVIDING"]==1].min()
+
+    id = track_df["DIVIDING"][track_df["INTENSITY"]>1.2].index
+    # plt.plot(track_df["POSITION_X"][id], track_df["POSITION_Y"][id], '*', color="green", alpha=1)
+    # plt.plot(track_df["POSITION_X"][id], track_df["POSITION_Y"][id], '*', color="green", alpha=1) 
 
     # plt.title(os.path.basename(r))
 
-    # track_df.to_csv(r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\Tracking\spots_100_200_1.csv")   
+    track_df.to_csv(r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\Tracking\spots_100_300_1.csv")   
 
     # progressBar(frame, 100)
+    # break
 
-    if frame>99:
+
+    if frame==track_df["POSITION_T"].max():
         break
 
 # exit()
@@ -186,14 +197,15 @@ print(xy_seg[idx1,:][:2])
 MASK = False
 
 # import TrackMate data
-track_path = r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\Tracking\spots_100_200_1_w_divisions.csv"
+track_path = r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\Tracking\spots_100_300_1.csv"
 track_df = pd.read_csv(track_path, skiprows=[1,2,3]).reset_index()
+print("Max frame with divisions: ",
+    track_df["POSITION_T"][track_df["INTENSITY"]>0].max())
 
-frame = 88 #first frame in TrackMate file starts from 100
+frame = 17 #first frame in TrackMate file starts from 100
 im_path = r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)/Trans__"+str(frame+100)+".tif"
 
 fig = plt.figure(figsize=(15,15))
-plt.imshow(cv2.imread(im_path)[:,:,0], cmap="gray", alpha=1.)
 
 if MASK:
     mask_path = os.path.join(
@@ -203,6 +215,8 @@ if MASK:
         )
     masks = cv2.imread(mask_path, flags=cv2.IMREAD_ANYDEPTH)
     x_cent, y_cent = find_centers(masks)
+    img = cv2.imread(im_path)
+    plt.imshow(img, cmap="gray", alpha=1.)
     plt.imshow(label2rgb(masks, bg_label=0), alpha=0.1)
     plt.plot(x_cent, y_cent, '*', color="white", alpha=.3) 
 
@@ -210,15 +224,75 @@ if MASK:
 cell_idx = track_df[track_df["POSITION_T"]==frame].index
 x_all = track_df["POSITION_X"][cell_idx]
 y_all = track_df["POSITION_Y"][cell_idx]
-plt.plot(x_all, y_all, '.', color="red", alpha=.3) 
 
-div_idx = track_df["DIVIDING"][np.logical_and(
+
+div_idx = track_df["DIVIDING"][np.logical_and.reduce((
         track_df["POSITION_T"]==frame,
-        track_df["DIVIDING"]==1)
+        # track_df["DIVIDING"]==1,
+        track_df["INTENSITY"]>1.2))
         ].index
-x_all = track_df["POSITION_X"][div_idx]
-y_all = track_df["POSITION_Y"][div_idx]
-plt.plot(x_all, y_all, '*', color="green", alpha=.6, )#mfc='none') 
+x_div = track_df["POSITION_X"][div_idx]
+y_div = track_df["POSITION_Y"][div_idx]
+   
+
+img = cv2.imread(im_path)
+d = 20
+for xi, yi in zip(x_div, y_div):
+    cv2.rectangle(img, 
+    (int(xi-d),int(yi-d)), (int(xi+d),int(yi+d)), 
+    (100/1.1,165/1.1,0), 2)
+plt.imshow(img, cmap="gray", alpha=1.)    
+plt.plot(x_all, y_all, '.', color="red", alpha=.3) 
+plt.plot(x_div, y_div, '*', color="green", alpha=1, )#mfc='none') 
+
+#%% looking for first appearance of round cell
+# import TrackMate data
+track_path = r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\Tracking\spots_100_300_1.csv"
+track_df = pd.read_csv(track_path, skiprows=[1,2,3]).reset_index()
+print("Max frame with divisions: ",
+    track_df["POSITION_T"][track_df["INTENSITY"]>0].max())
+
+fig = plt.figure(figsize=(10,10))
+
+frames = track_df["POSITION_T"][track_df["INTENSITY"]>0].unique()
+for frame in frames[32:]:
+    print(frame)
+    im_path = os.path.join(
+            folder,
+            "Trans__"+str(int(frame)+100)+".tif")
+
+    cell_idx = track_df[track_df["POSITION_T"]==frame].index
+    x_all = track_df["POSITION_X"][cell_idx]
+    y_all = track_df["POSITION_Y"][cell_idx]
+
+    div_idx = track_df["DIVIDING"][np.logical_and.reduce((
+            track_df["POSITION_T"]==frame,
+            # track_df["DIVIDING"]==1,
+            track_df["INTENSITY"]>1.2))
+            ].index
+    x_div = track_df["POSITION_X"][div_idx]
+    y_div = track_df["POSITION_Y"][div_idx]    
+
+    img = cv2.imread(im_path)
+    d = 20
+    for xi, yi in zip(x_div, y_div):
+        cv2.rectangle(img, 
+            (int(xi-d),int(yi-d)), (int(xi+d),int(yi+d)), 
+            (100/1.2,165/1.2,0), 2)
+        cv2.circle(img, (int(xi),int(yi)), radius=5, color=(0, 0, 255/1.5), thickness=2)
+    plt.imshow(img, cmap="gray", alpha=1.)   
+
+    # plt.plot(x_all, y_all, '.', color="red", alpha=.3) 
+    # plt.plot(x_div, y_div, '*', color="green", alpha=1, ) #mfc='none') 
+
+    div_path = os.path.join(
+        str(pathlib.Path(im_path).parents[0]), 
+        "Div", 
+        im_path.split(os.sep)[-1].split(".")[0]+"_div.png"
+        )
+    os.makedirs(os.path.dirname(div_path), exist_ok=True)
+    cv2.imwrite(div_path,img)
+    break
 
 # %%
 img = plt.imread(r)
