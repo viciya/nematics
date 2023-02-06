@@ -12,6 +12,7 @@ from vasco_scripts.defects  import *
 import pathlib
 import seaborn as sns
 from pip._internal.cli.progress_bars import get_download_progress_renderer
+from scipy import ndimage
 
 
 # %matplotlib qt
@@ -50,19 +51,10 @@ def center_pairs(Xlong, Xshort):
 # replace with local threshold
 # than look for pairs between centers of bright spots and ...
 def brightness(image, mask, labels):
-    '''measure relative intenslity for each mask label'''
-    from scipy import ndimage
+    '''measure raw image intenslity for each mask label'''
     intensity = []
     for l in labels:
-        # print(l, " from ", len(labels))  
-        mask_in = (masks==l)
-        img_in = image*mask_in
-        mask_out = ndimage.binary_dilation(mask_in, iterations=50)
-        img_out = image*mask_out
-        intensity.append(
-            np.true_divide(img_in.sum(),(img_in!=0).sum())/ # mean without zeros
-            np.true_divide(img_out.sum(),(img_out!=0).sum())
-            )  
+        intensity.append(image[masks==l].mean())
         progressBar(l,len(labels))
         
     return intensity    
@@ -86,52 +78,53 @@ for raw in raw_list:
 track_path = r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\Tracking\spots_100_300.csv"
 track_df = pd.read_csv(track_path, skiprows=[1,2,3]).reset_index()
 track_df = track_df.drop(columns=['MANUAL_SPOT_COLOR']).dropna()
+track_df = pd.read_csv(track_path).reset_index()
 track_df["DIVIDING"] = 0
-track_df["INTENSITY"] = 0
-# track_df.head
+track_df["INTENSITY_UNNORM"] = 0
+track_df.head
 
 # %% show segmentation on overlay
 num = 99 #first frame of TrackMate file
 for (frame, r), m in zip(enumerate(raw_list[num:]), mask_list[num:]):
-    print("------------ F R A M E:  >", frame, "< --------------")
-    masks = cv2.imread(m,flags=cv2.IMREAD_ANYDEPTH)
-    x_cent, y_cent, label_num = find_centers(masks)
-    # plt.figure()
-    image = cv2.imread(r)[:,:,0]
-    # plt.imshow(image, cmap="gray", alpha=1.)
-    # plt.imshow(label2rgb(masks, bg_label=0), alpha=0.3)
-    # plt.plot(x_cent, y_cent, '*', color="white", alpha=.3) 
+    if frame>0:
+        print("------------ F R A M E:  >", frame, "< --------------")
+        masks = cv2.imread(m,flags=cv2.IMREAD_ANYDEPTH)
+        x_cent, y_cent, label_num = find_centers(masks)
+        # plt.figure()
+        image = cv2.imread(r)[:,:,0]
+        # plt.imshow(image, cmap="gray", alpha=1.)
+        # plt.imshow(label2rgb(masks, bg_label=0), alpha=0.3)
+        # plt.plot(x_cent, y_cent, '*', color="white", alpha=.3) 
 
-    cell_idx = track_df[track_df["POSITION_T"]==frame].index#(track_df["POSITION_T"]==num-99)
+        cell_idx = track_df[track_df["POSITION_T"]==frame].index#(track_df["POSITION_T"]==num-99)
+        
+        xr = track_df["POSITION_X"][cell_idx]
+        yr = track_df["POSITION_Y"][cell_idx]
+        radi = track_df["RADIUS"][cell_idx]
+        # plt.plot(xr, yr, '*', color="red", alpha=1) 
+
+
+        # Register btw points (x,y) of two arrays
+        # xy_seg[idx[:n]] == xy_track[:n]
+        xy_seg = np.array([x_cent, y_cent]).T
+        xy_track = np.array([xr, yr]).T
+        idx = center_pairs(
+            xy_seg, #Long Array
+            xy_track #Short Array
+            ) 
+
+        intensity = brightness(image, masks, label_num)
+        track_df["INTENSITY_UNNORM"][cell_idx] = np.array(intensity)[idx]
+
+        # id = track_df["DIVIDING"][track_df["INTENSITY"]>1.2].index
+        # plt.plot(track_df["POSITION_X"][id], track_df["POSITION_Y"][id], '*', color="green", alpha=1)
     
-    xr = track_df["POSITION_X"][cell_idx]
-    yr = track_df["POSITION_Y"][cell_idx]
-    radi = track_df["RADIUS"][cell_idx]
-    # plt.plot(xr, yr, '*', color="red", alpha=1) 
-
-
-    # Register btw points (x,y) of two arrays
-    # xy_seg[idx[:n]] == xy_track[:n]
-    xy_seg = np.array([x_cent, y_cent]).T
-    xy_track = np.array([xr, yr]).T
-    idx = center_pairs(
-        xy_seg, #Long Array
-        xy_track #Short Array
-        ) 
-
-    intensity = brightness(image, masks, label_num)
-    track_df["INTENSITY"][cell_idx] = np.array(intensity)[idx]
-
-    # id = track_df["DIVIDING"][track_df["INTENSITY"]>1.2].index
-    # plt.plot(track_df["POSITION_X"][id], track_df["POSITION_Y"][id], '*', color="green", alpha=1)
-
-
-
-
-    track_df.to_csv(r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\Tracking\spots_100_300_1.csv")   
+        if (frame % 10)==0:
+            track_df.to_csv(r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\Tracking\spots_100_300_2.csv")   
 
 
     if frame==track_df["POSITION_T"].max():
         break
 
+track_df.to_csv(r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\Tracking\spots_100_300_2.csv") 
 exit()
