@@ -75,10 +75,10 @@ for raw in raw_list:
     mask_list.append(mask_path)
 
 # %% Tracking Data Analysis
-track_path = r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\Tracking\spots_100_300.csv"
+track_path = r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\Tracking\spots_100_500.csv"
 track_df = pd.read_csv(track_path, skiprows=[1,2,3]).reset_index()
 track_df = track_df.drop(columns=['MANUAL_SPOT_COLOR']).dropna()
-track_df = pd.read_csv(track_path).reset_index()
+# track_df = pd.read_csv(track_path).reset_index()
 track_df["DIVIDING"] = 0
 track_df["INTENSITY_UNNORM"] = 0
 track_df.head
@@ -120,11 +120,12 @@ for (frame, r), m in zip(enumerate(raw_list[num:]), mask_list[num:]):
         # plt.plot(track_df["POSITION_X"][id], track_df["POSITION_Y"][id], '*', color="green", alpha=1)
     
         if (frame % 10)==0:
-            track_df.to_csv(r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\Tracking\spots_100_300_2.csv")   
+            track_df.to_csv(r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\Tracking\spots_100_500_2.csv") 
+        # break  
 
 
     if frame==track_df["POSITION_T"].max():
         break
 
-track_df.to_csv(r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\Tracking\spots_100_300_2.csv") 
+track_df.to_csv(r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\Tracking\spots_100_500_2.csv") 
 exit()
