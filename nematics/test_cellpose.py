@@ -106,7 +106,7 @@ xy_seg[idx[:3]]
 xy_track[:3]
 
 # use index to insert "1" fo deviding cells
-track_df['POSITION_X'][df['POSITION_X'].index][:3]
+track_df['POSITION_X'][df['POSITION_X'][intensity[idx]>60].index]
 track_df['DIVIDING'] = 0
 # TODO 
 # %%
