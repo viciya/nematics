@@ -21,3 +21,5 @@ nematics/Ken/IO/raw_images/orientation/*
 nematics/Ken/rotated_image.jpg
 nematics/Ken/test_from_0.png
 nematics/Ken/IO/raw_images/velocity_around_defect/test.npy
+/nematics/Ken/IO/raw_images/
+/nematics/Ken/IO/
