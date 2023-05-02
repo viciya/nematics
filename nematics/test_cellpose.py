@@ -16,6 +16,11 @@ from pip._internal.cli.progress_bars import get_download_progress_renderer
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
+# %%
+
+# %%
+
+
 
 # %matplotlib qt
 
@@ -86,7 +91,7 @@ def pad_array_with_nans(arr, mid_idx, padd_arr_len=41):
         mid_idx = mid_idx - left_shift
 
     end_idx = min(padd_arr_len//2 + (len(arr) - mid_idx), padd_arr_len)
-    if len(arr) >= padd_arr_len:
+    if end_idx == padd_arr_len:
         arr = arr[:padd_arr_len-start_idx]
     
     padded_arr = np.full(padd_arr_len, np.nan)
@@ -166,13 +171,13 @@ def arrays_average_sem(arrays):
 
 track_df1 = pd.read_csv(r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\Tracking\spots_100_500_wdivs.csv")
 # %%
-min_track_len = 120
+min_track_len = 50
 track_df1['count'] = track_df1.groupby('TRACK_ID')['TRACK_ID'].transform('count')
 track_df2 = track_df1.loc[track_df1['count']>min_track_len]
 # %%
 tracks_all = track_df2["TRACK_ID"][track_df2['T0']==1].unique()
 
-params = ['AREA', 'PERIMETER','SHAPE_INDEX', 'CIRCULARITY', 'RADIUS' , 'ELLIPSE_MAJOR', 'ELLIPSE_ASPECTRATIO'     
+params = ['AREA', 'PERIMETER','SHAPE_INDEX', 'CIRCULARITY', 'RADIUS' , #'ELLIPSE_MAJOR', 'ELLIPSE_ASPECTRATIO'     
 # 'RADIUS', 'ELLIPSE_X0', 'ELLIPSE_Y0', 'ELLIPSE_MAJOR', 'ELLIPSE_MINOR', 
 # 'ELLIPSE_THETA', 'ELLIPSE_ASPECTRATIO', 'AREA', 'PERIMETER',
 # 'CIRCULARITY', 'SOLIDITY', 'SHAPE_INDEX', 'DIVIDING'
@@ -180,7 +185,8 @@ params = ['AREA', 'PERIMETER','SHAPE_INDEX', 'CIRCULARITY', 'RADIUS' , 'ELLIPSE_
 PARAM = 'ELLIPSE_MINOR'
 %matplotlib qt
 
-padd_arr_len = min_track_len - 1
+frame2hr = 1/12
+padd_arr_len = 400
 
 data_dict = {}
 
@@ -190,7 +196,7 @@ axs = axs.ravel()
 
 for ax,PARAM in zip(axs, params):
     param_arr = []
-    for tid in tracks_all[::1]:
+    for tid in tracks_all[:5000:10]:
         div_idx = track_df2[PARAM][track_df2["TRACK_ID"]==tid].index    
         param_val = track_df2[PARAM][div_idx].rolling(window=5).mean()
         # param_val = np.diff(param_val)
@@ -198,6 +204,7 @@ for ax,PARAM in zip(axs, params):
         
         if not any(t0[0:3]):
             t0_val = t0
+            # print(len(t0))
 
             mid_idx = int(np.where(t0>0)[0])
             #  collect param_val arrays for averaging
@@ -212,16 +219,17 @@ for ax,PARAM in zip(axs, params):
 
     print(PARAM, param_ave.shape)
     x = np.arange(len(param_ave))-padd_arr_len//2
+    x = x * frame2hr
     ax.axvline(x=0, color='red', linestyle='--', linewidth=3, alpha=0.3)
     ax.plot(x, param_ave, alpha=.3, linewidth=3, color='b')
     ax.fill_between(x, param_ave - param_std, param_ave + param_std, color='blue', alpha=0.2)
-     
+    ax.set_xlabel("$hours$") 
     ax.set_title(PARAM)
-    ax.set_xlim([-min_track_len//2, min_track_len//2])
+    ax.set_xlim([-padd_arr_len//2 * frame2hr, padd_arr_len//2 * frame2hr])
     # ax.set_ylim([param_val.min(),param_val.max()])
     data_dict[PARAM] = {"_ave": param_ave, "std": param_std}
 
-
+# %%
 save_path = r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\Tracking\spots_100_500_wdivs_division_dynamics"+str(min_track_len)+".pkl"
 with open(save_path, 'wb') as f:
     pickle.dump(data_dict, f)
@@ -243,30 +251,31 @@ for ax,param_name in zip(axs, data_dict1):
     ax.axvline(x=0, color='red', linestyle='--', linewidth=3, alpha=0.3)
     ax.plot(x, param_ave, alpha=.3, linewidth=3, color='b')
     ax.fill_between(x, param_ave - param_std, param_ave + param_std, color='blue', alpha=0.2)
-     
+    ax.set_xlabel("$hours$") 
     ax.set_title(param_name)
-    ax.set_xlim([-min_track_len//2 * frame2hr, min_track_len//2 * frame2hr])
+    ax.set_xlim([-padd_arr_len//2 * frame2hr, padd_arr_len//2 * frame2hr])
 # %%
-# def pad_array_with_nans(arr, mid_idx, padd_arr_len=41):
+def pad_array_with_nans(arr, mid_idx, padd_arr_len=41):
 
-#     start_idx = max(padd_arr_len//2 - mid_idx, 0)
-#     # if left side doesn't fit cut and shift arr
-#     if mid_idx > padd_arr_len//2: 
-#         left_shift = mid_idx - padd_arr_len//2
-#         arr = arr[left_shift:]
-#         mid_idx = mid_idx - left_shift
+    start_idx = max(padd_arr_len//2 - mid_idx, 0)
+    # if left side doesn't fit cut and shift arr
+    if mid_idx > padd_arr_len//2: 
+        left_shift = mid_idx - padd_arr_len//2
+        arr = arr[left_shift:]
+        mid_idx = mid_idx - left_shift
 
-#     end_idx = min(padd_arr_len//2 + (len(arr) - mid_idx), padd_arr_len)
-#     if len(arr) > padd_arr_len:
-#         arr = arr[:padd_arr_len-start_idx]
+    end_idx = min(padd_arr_len//2 + (len(arr) - mid_idx), padd_arr_len)
+    if len(arr) > padd_arr_len:
+        arr = arr[:padd_arr_len-start_idx]
     
-#     padded_arr = np.full(padd_arr_len, np.nan)
-#     padded_arr[start_idx:end_idx] = arr
-#     return padded_arr
+    padded_arr = np.full(padd_arr_len, np.nan)
+    padded_arr[start_idx:end_idx] = arr
+    return padded_arr
 
 
-mid_idx = 50
+mid_idx = 3
 b = np.zeros((55))
+b[:5] = [np.nan] * 5
 b[mid_idx] = 1
 print(b)
 c = pad_array_with_nans(b, mid_idx, padd_arr_len=13)

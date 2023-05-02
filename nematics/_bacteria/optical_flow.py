@@ -156,37 +156,106 @@ for (i,im1), im2 in zip(enumerate(image_list[:-1]),image_list[1:]):
 # plt.title("$L-R ~Shift:$ \n($\Delta X,\Delta Y$)=("+ '%.2f' %shift[0]+ ","+ '%.2f' %shift[1]+ ")")
 # plt.axis([0,w1,0,h1])
 
-# # %%
+# %%
 
-# from skimage import io
+from skimage import io
 # im = io.imread(r"C:\Users\victo\Downloads\optical_flow.tif")
-# # %%
-# xi = int(0)
-# xj = int (-1)
-# im_num = 9
-# colors = plt.cm.jet(np.linspace(0, 1, num=im_num))
+# im = io.imread(r"C:\Users\victo\Downloads\SB_lab\HT1080\26_07_2018_HT1080_10x_15min_1_s8_4.tif")
+im = io.imread(r"C:\Users\victo\Downloads\HT1080\27072018_TIFF\s29_3.tif")
+# %%
+xi = int(0)
+xj = int (-1)
+im_num = im.shape[0]-1 #9
+colors = plt.cm.jet(np.linspace(0, 1, num=im_num))
 
-# # fig = plt.figure(figsize=(15,15))
-# # plt.imshow(im[0], cmap="gray")
-# step = 5
-# for i in range(im_num):
-#     flow = cv2.calcOpticalFlowFarneback(im[i,xi:xj,xi:xj],im[i+1,xi:xj,xi:xj], None, 0.5, 3, 
-#         winsize=5, iterations=3, poly_n=5, poly_sigma=1.2, flags=0)        
+fig = plt.figure(figsize=(5,15))
+# plt.imshow(im[0], cmap="gray")
+step = 20
+flows = []
+for i in range(im_num):
+    flow = cv2.calcOpticalFlowFarneback(im[i,xi:xj,xi:xj],im[i+1,xi:xj,xi:xj], None, 0.5, 3, 
+        winsize=15, iterations=3, poly_n=5, poly_sigma=1.2, flags=0)      
+    flows.append(flow[:, :, 1])  
 
-#     # 
-#     # x, y = np.arange(0, flow.shape[1], step), np.arange(flow.shape[0]-step, -1, -step)
-#     x = np.arange(0, flow.shape[1], step, dtype=np.int32)
-#     y = np.arange(0, flow.shape[0], step, dtype=np.int32)
-#     fig = plt.figure(figsize=(15,15))
-#     plt.quiver(x,y, 
-#             flow[::step, ::step, 0], -flow[::step, ::step, 1], 
-#             color=colors[i], alpha=.6)
+    # 
+    # x, y = np.arange(0, flow.shape[1], step), np.arange(flow.shape[0]-step, -1, -step)
+    x = np.arange(0, flow.shape[1], step, dtype=np.int32)
+    y = np.arange(0, flow.shape[0], step, dtype=np.int32)
+    # fig = plt.figure(figsize=(15,15))
+    plt.imshow(im[i], cmap="gray")
+    plt.quiver(x,y, 
+            flow[::step, ::step, 0], -flow[::step, ::step, 1],  scale=150, width=0.01, 
+            color=colors[-1])
+            # color=colors[i], alpha=.6)
     
-#     # if i>2:
-#     #      break
-#     save_path = os.path.join(os.path.dirname(r"C:\Users\victo\Downloads\Max"),'flow_%d.png' % i)
-#     os.makedirs(os.path.dirname(save_path), exist_ok=True)
-#     fig.savefig(save_path)
+    # if i>10:
+    #      break
+    # break
+    save_path = os.path.join(r"C:\Users\victo\Downloads\HT1080_Flow",'flow_%d.png' % i)
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    fig.savefig(save_path)
+    plt.cla()
     
-# plt.tight_layout()
-# plt.show()
+plt.tight_layout()
+plt.show()
+
+# %%
+from skimage import io
+# im = io.imread(r"C:\Users\victo\Downloads\optical_flow.tif")
+# im = io.imread(r"C:\Users\victo\Downloads\SB_lab\HT1080\26_07_2018_HT1080_10x_15min_1_s8_4.tif")
+# im = io.imread(r"C:\Users\victo\Downloads\HT1080\27072018_TIFF\s29_3.tif")
+im = io.imread(r"C:\Users\victo\Downloads\HT1080\27072018_TIFF\s29_3.tif")
+
+xi = int(0)
+xj = int (-1)
+
+flows = []
+for i in range(im_num):
+    flow = cv2.calcOpticalFlowFarneback(im[i,xi:xj,xi:xj],im[i+1,xi:xj,xi:xj], None, 0.5, 3, 
+        winsize=15, iterations=3, poly_n=5, poly_sigma=1.2, flags=0)      
+    flows.append(flow[:, :, 1])  
+
+# %%
+im_list = glob.glob(r"C:\Users\victo\Downloads\HT1080\26_07_2018_HT1080_stripes_20_600\HT1080_10x_15min_1_s14_*")
+plt.imshow(cv2.imread(im_list[90]), "gray")  
+# %%
+start = 90
+last = start + 100
+flows = []
+for path1, path2 in zip(im_list[start:last], im_list[start+1:last+1]):
+    im1 = cv2.imread(path1, cv2.IMREAD_GRAYSCALE)
+    im2 = cv2.imread(path2, cv2.IMREAD_GRAYSCALE)
+    flow = cv2.calcOpticalFlowFarneback(im1, im2, None, 0.5, 3, 
+        winsize=15, iterations=3, poly_n=5, poly_sigma=1.2, flags=0)      
+    flows.append(flow[:, :, 1]) 
+# %%
+dt = 15
+# fig, axs  = plt.subplots(1,im_num//dt, figsize=(20, 5))
+fig, axs  = plt.subplots(3,4)#, figsize=(20, 5))
+axs = axs.ravel()
+
+for i,ax in enumerate(axs):
+    first = int(dt * i)
+    last = int(first + dt)
+    mean_flow = np.mean(np.array(flows)[first:last,:,:], axis=0) - np.mean(np.array(flows)[first:last,:,:])
+    q = ax.imshow(mean_flow, cmap="seismic", vmin=-15, vmax=15)
+    # Add colorbar
+    # cbar = fig.colorbar(q, ax=ax)
+    ax.axis("off")
+    ax.set_title("$frames:~$"+str(first)+"-"+str(last))
+    
+# %%
+# Loop through the rest of the images and compute auto-correlation
+corr = []
+for i in range(0, 99):
+    # vel = 
+    corr.append(np.mean(flows[i] * flows[0])/ np.mean(flows[0] * flows[0]))
+    print(i)
+
+# Plot the correlation matrix
+plt.figure()
+plt.plot(corr,"--o")
+plt.title('Auto-Correlation of Image Sequence')
+
+
+
