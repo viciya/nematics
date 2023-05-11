@@ -108,7 +108,8 @@ class image:
         path :  str
             path to folder that contains the images.
 
-        return : number_of_defects, mean_array
+        return:
+            number_of_defects, mean_array
             mean_array : an average over the velocities
             number_of_defects : over how many defect was mean array calculated
         """
@@ -126,9 +127,8 @@ class image:
             if center[0] + half_window > velocity_array.shape[1] or center[1] + half_window > velocity_array.shape[1]:
                 number_of_defects -= 1
                 continue
-            cropped = self.crop(center=center,
-                                velocity_array=velocity_array,
-                                half_window=half_window)
+
+            cropped = crop_window(arr=velocity_array,point=center,window_size=half_window * 2)
 
             # rotate each PIV by -angle
             ang = defect['ang1']
@@ -146,7 +146,9 @@ class image:
             rotated = sp.ndimage.rotate(rotated_velocity, ang_d, reshape=False)
             mid = (rotated.shape[0] // 2) - 0.5
             center = (mid, mid)
-            cropped_after_rotation = self.crop(center, rotated, np.floor(second_window / 2))
+            cropped_after_rotation = crop_window(arr=rotated,
+                                                 point=center,
+                                                 window_size= second_window)
 
             # save:
             if save:
@@ -163,6 +165,7 @@ class image:
                 ##########plot ###############
                 fig, ax = plt.subplots(2, 2, figsize=(10, 10))
 
+                #plot final
                 step = 15
                 x = np.arange(0, cropped_after_rotation.shape[1], step, dtype=np.int16)
                 y = np.arange(0, cropped_after_rotation.shape[0], step, dtype=np.int16)
@@ -207,30 +210,6 @@ class image:
             #########added for debugging#######
 
         return number_of_defects, mean_arr
-
-    def crop(self, center, velocity_array, half_window):
-        """
-        crops a window around a defect
-
-        parameters
-        -------------
-        center: array
-        [x_index, y_index]
-
-        velocity_array : array
-        the flow array for the image the defect was taken from
-
-        half_window : int
-        half the window size of which the array will be cropped
-
-        return :
-        --------------
-        cropped : array
-        the flow array around the defect
-
-        """
-        return crop_window(velocity_array, center, half_window * 2)
-
 
 def crop_window(arr, point, window_size):
     """

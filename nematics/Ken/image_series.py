@@ -1,15 +1,12 @@
-# import torch
-# import torchvision
-import os
-import scipy as sp
-import numpy as np
+# import os
+# import scipy as sp
+# import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import cv2
-# from skimage import feature, measure, restoration
-from defects import *
-from natsort import natsorted
-import glob
+# from defects import *
+# from natsort import natsorted
+# import glob
 from image import *
 
 
@@ -128,7 +125,7 @@ class image_series:
                 name = 'orientation_from_' + img.name + '.npy'
                 np.save(self.orientation_path + name, ori)
 
-    def detect_defects(self):
+    def detect_defects(self, window_size=None):
         """
         goes over images and detects the defects as -0.5/ +0.5 
         and adds them to df accordingly.
@@ -152,6 +149,7 @@ class image_series:
             'ang3' : 3rd angle (only in minus defects)
 
         """
+        window_size = self.OF_window if window_size is None else window_size
 
         PlusHalf, MinusHalf = pd.DataFrame(), pd.DataFrame()
         for img in self.images:
@@ -159,7 +157,7 @@ class image_series:
                                              self.save_orientation,
                                              self.defects_csv_path,
                                              self.save_defects,
-                                             self.orientation_window)
+                                             window_size)
 
             # add to total DF
             PlusHalf = pd.concat([PlusHalf, plus])
@@ -175,7 +173,7 @@ class image_series:
     def __repr__(self) -> str:
         return f"image_series : \n  number of images = {len(self.images)}"
 
-    def optical_flow(self, window=None):
+    def optical_flow(self, window_size=None):
 
         """
         calculates the optical flow for image_list and save as a np.array
@@ -183,7 +181,7 @@ class image_series:
         doesn't add the directory
         """
 
-        window = self.OF_window if window is None else window
+        window = self.OF_window if window_size is None else window_size
         for (i, im1), im2 in zip(enumerate(self.images[:-1]), self.images[1:]):
 
             img1 = im1.img
@@ -202,22 +200,24 @@ class image_series:
 
         return None
 
-    def velocity_averaging(self, window=None, plot=False):
+    def velocity_averaging(self, window_size=None, plot=False):
         """
         takes all the images in the velocity and defect folders, crops a window around each 
         defect and tilts the velocity field around the defect.
         save
         """
-        window = self.velocity_around_defect_window if window is None else window
+
+        window = self.velocity_around_defect_window if window_size is None else window_size
         half_window = np.floor(window / 2)
         final_size = int(np.floor(half_window / np.sqrt(2)))
-
         mean_arr_plus = np.zeros(shape=(final_size, final_size, 2))
         mean_arr_minus = np.zeros_like(mean_arr_plus)
         total_number_of_minus, total_number_of_plus = 0, 0
         minus_defect_num = []
         plus_defect_num = []
+
         for img_num, img in enumerate(self.images):
+
             # there is 1 less flow image thus we skip the last image
             if img_num + 1 >= len(self.images):
                 break
@@ -229,6 +229,7 @@ class image_series:
             minus_df = pd.read_csv(min_path, header=0, index_col=0)
             plus_df = pd.read_csv(plus_path, header=0, index_col=0)
             flow_arr = np.load(flow_path)
+
             # minus
             number_of_defects_minus, mean_arr_minus = img.crop_and_tilt(defects_df=minus_df,
                                                                         velocity_array=flow_arr,
@@ -293,7 +294,7 @@ class image_series:
 
     def run_all(self):
         self.optical_flow()
-        self.calc_orientation()
+        # self.calc_orientation()
         self.detect_defects()
         self.velocity_averaging()
 
