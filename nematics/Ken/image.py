@@ -1,14 +1,18 @@
+from scipy.ndimage import rotate
+from numpy import pad
 import os
 import scipy as sp
 import numpy as np
 import pandas as pd
+import time
 import matplotlib.pyplot as plt
 import cv2
+import warnings
 # from skimage import feature, measure, restoration
 from defects import *
 from natsort import natsorted
 import glob
-
+from tqdm import tqdm
 
 class image:
     """  
@@ -56,6 +60,8 @@ class image:
                 df of minus half defects detected
 
         """
+        # mute warnings
+        warnings.filterwarnings('ignore')
 
         pic_x = self.img.shape[1]
         pic_y = self.img.shape[0]
@@ -74,8 +80,8 @@ class image:
 
         plushalf = defects[defects['charge'] == .5]
         minushalf = defects[defects['charge'] == -.5]
-        plushalf['from_img'] = self.name
-        minushalf['from_img'] = self.name
+        plushalf.loc[:, 'from_img'] = self.name
+        minushalf.loc[:, 'from_img'] = self.name
 
         # save:
         if save_defects:
@@ -96,7 +102,36 @@ class image:
 
         return ori
 
-    def crop_and_tilt(self, defects_df=None, velocity_array=None, orientation_array=None, half_window=200, save=False,
+# trying new way of rotation
+    def rotate_window(self,velocities, df, window_size=400):
+        results = []
+        for i, row in tqdm(df.iterrows()):
+            x, y, ang1 = int(row['x']), int(row['y']), row['ang1']
+            half_size = window_size // 2
+
+            # crop and rotate the window
+            padded_window = crop_window(velocities,x,y,window_size)
+            rotated_window = rotate(padded_window, np.degrees(ang1), reshape=False, order=1) # check order = 1 (normally 3 )
+
+            # Crop the rotated window around its center to be 1/sqrt(2) of its former size
+            cropped_size = int(np.ceil(half_size / np.sqrt(2)))
+            cropped_window = rotated_window[half_size - cropped_size:half_size + cropped_size,
+                             half_size - cropped_size:half_size + cropped_size, :]
+
+            # rotate the velocity field by ang1
+            cos_ang1, sin_ang1 = np.cos(ang1), np.sin(ang1)
+            rotation_matrix = np.array([[cos_ang1, sin_ang1], [-sin_ang1, cos_ang1]])
+            rotated_field = np.apply_along_axis(lambda v: (v @ rotation_matrix), 2, cropped_window)
+            results.append(rotated_field)
+
+        return (len(results),np.array(results).mean(axis=0))
+
+    def crop_and_tilt(self,
+                      defects_df=None,
+                      velocity_array=None,
+                      orientation_array=None,
+                      half_window=200,
+                      save=False,
                       path="", plot=False):
         """
         for each defect in the image, crops a window around it and tilts it and the
@@ -117,18 +152,10 @@ class image:
         second_window = int(np.floor(half_window * np.sqrt(2)))
         mean_arr = np.zeros(shape=(second_window, second_window, 2))
         number_of_defects = defects_df.shape[0]
-        for idx, defect in defects_df.iterrows():
-            center = (defect['y'], defect['x'])
+        for idx, defect in tqdm(defects_df.iterrows()):
+            x,y = int(defect['x']), int(defect['y'])
 
-            # TODO edge cases such as padding
-            if center[0] < half_window or center[1] < half_window:
-                number_of_defects -= 1
-                continue
-            if center[0] + half_window > velocity_array.shape[1] or center[1] + half_window > velocity_array.shape[1]:
-                number_of_defects -= 1
-                continue
-
-            cropped = crop_window(arr=velocity_array,point=center,window_size=half_window * 2)
+            cropped = crop_window(arr=velocity_array,x=x,y=y,window_size=half_window * 2)
 
             # rotate each PIV by -angle
             ang = defect['ang1']
@@ -144,10 +171,11 @@ class image:
             ang_d = np.rad2deg(ang)
 
             rotated = sp.ndimage.rotate(rotated_velocity, ang_d, reshape=False)
-            mid = (rotated.shape[0] // 2) - 0.5
-            center = (mid, mid)
+            mid = int((rotated.shape[0] // 2) - 0.5)
+            # center = (mid, mid)
             cropped_after_rotation = crop_window(arr=rotated,
-                                                 point=center,
+                                                 x=mid,
+                                                 y=mid,
                                                  window_size= second_window)
 
             # save:
@@ -210,21 +238,48 @@ class image:
             #########added for debugging#######
 
         return number_of_defects, mean_arr
-
-def crop_window(arr, point, window_size):
+def crop_window(arr, x, y, window_size):
     """
-    Crops a window of the array around the point.
 
-    Parameters:
-    arr (numpy.ndarray): The input array.
-    point (tuple): The point around which to crop the window.
-    window_size (int): The size of the window to crop.
+    Parameters
+    ----------
+    velocities
+    x: (int) the x coordinate of the defect
+    y: (int) the y coordinate of the defect
+    window_size: (int) the size of the window that will be cropped around the defect
 
-    Returns:
-    numpy.ndarray: The cropped window.
+    Returns
+    -------
+    padded_window: (np.array) an array of size window_size that contains the velocity
+    array around the defect and a propper padding of 0s in case of going over the limit size of
+    the original velocity array.
     """
-    row, col = point
-    row, col = int(row), int(col)
-    half_window = int(window_size // 2)
-    cropped = arr[row - half_window:row + half_window, col - half_window:col + half_window]
-    return cropped
+    # replace x,y because of mistake
+    x,y = y,x
+    half_size = int(window_size // 2)
+    x_min, y_min = max(x - half_size, 0), max(y - half_size, 0)
+    x_max, y_max = min(x + half_size + 1, arr.shape[0]), min(y + half_size + 1, arr.shape[1])
+    x_pad_before = max(half_size - (x + 1 - x_min), 0)
+    x_pad_after = max(half_size - (x_max + 1 - x), 0)
+    y_pad_before = max(half_size - (y + 1 - y_min), 0)
+    y_pad_after = max(half_size - (y_max + 1- y), 0)
+    cropped_window = arr[x_min:x_max, y_min:y_max, :]
+    padded_window = pad(cropped_window, ((x_pad_before, x_pad_after), (y_pad_before, y_pad_after), (0, 0)), 'constant')
+    return padded_window
+# def crop_window(arr, point, window_size):
+#     """
+#     Crops a window of the array around the point.
+#
+#     Parameters:
+#     arr (numpy.ndarray): The input array.
+#     point (tuple): The point around which to crop the window.
+#     window_size (int): The size of the window to crop.
+#
+#     Returns:
+#     numpy.ndarray: The cropped window.
+#     """
+#     row, col = point
+#     row, col = int(row), int(col)
+#     half_window = int(window_size // 2)
+#     cropped = arr[row - half_window:row + half_window, col - half_window:col + half_window]
+#     return cropped
