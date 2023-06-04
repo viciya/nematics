@@ -19,7 +19,7 @@ Ang = imread(filepath);
 qq = order_parameter(Ang,10,3);
 imshow(qq); hold on
 [xf, yf] = detectDefectsFromAngle(Ang);
-scatter(xf, yf, "filled")
+scatter(xf, yf, "filled", MarkerFaceColor="red")
 
 %% Classification of +1/2 and -1/2 defects
 filepath = '.\example_images\orient\Orient_1_X1.tif'
@@ -41,7 +41,7 @@ plot_pdefect_ndefect(ps_x, ps_y, plocPsi_vec,...
 
 %% 
 % Optical Flow load
-load('C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\OptFlow\1_X1.mat');
+load('.\example_images\flow\1_X1.mat');
 [Xu,Yu] = meshgrid(1:size(Ang,2),1:size(Ang,1));
 step = 13;
 q7 = quiver( ...

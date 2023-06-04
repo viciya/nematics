@@ -9,4 +9,6 @@ qq = order_parameter(Ang,10,3);
 [x, y] = detectDefectsFromOrderParameter(qq);
 
 X = [x,y];
-[xf, yf] = removeClosePoints(X, 15);
+% [xf, yf] = removeClosePoints(X, 15);
+xf = x;
+yf = y;

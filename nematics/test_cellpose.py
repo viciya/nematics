@@ -17,67 +17,91 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 # %%
+%matplotlib qt
 
-# %%
+import sys,time,random
+def progressBar(count_value, total, suffix=''):
+    bar_length = 100
+    filled_up_Length = int(round(bar_length* count_value / float(total)))
+    percentage = round(100.0 * count_value/float(total),1)
+    bar = '=' * filled_up_Length + '-' * (bar_length - filled_up_Length)
+    sys.stdout.write('[%s] %s%s ...%s\r' %(bar, percentage, '%', suffix))
+    sys.stdout.flush()
 
+def find_centers(masks):
+    '''find centers in segmented image b/w or labels'''
+    regions = regionprops(masks)
+    x_cent = []
+    y_cent = []
+    label_num = []
+    for i,props in enumerate(regions):
+        yi, xi = props.centroid
+        x_cent.append(xi)
+        y_cent.append(yi)
+        label_num.append(props.label)
+        # plt.text(xi, yi, str(i))
+    return x_cent, y_cent, label_num
 
-
-# %matplotlib qt
-
-# import sys,time,random
-# def progressBar(count_value, total, suffix=''):
-#     bar_length = 100
-#     filled_up_Length = int(round(bar_length* count_value / float(total)))
-#     percentage = round(100.0 * count_value/float(total),1)
-#     bar = '=' * filled_up_Length + '-' * (bar_length - filled_up_Length)
-#     sys.stdout.write('[%s] %s%s ...%s\r' %(bar, percentage, '%', suffix))
-#     sys.stdout.flush()
-
-# def find_centers(masks):
-#     '''find centers in segmented image b/w or labels'''
-#     regions = regionprops(masks)
-#     x_cent = []
-#     y_cent = []
-#     label_num = []
-#     for i,props in enumerate(regions):
-#         yi, xi = props.centroid
-#         x_cent.append(xi)
-#         y_cent.append(yi)
-#         label_num.append(props.label)
-#         # plt.text(xi, yi, str(i))
-#     return x_cent, y_cent, label_num
-
-# def center_pairs(Xlong, Xshort):
-#     '''find indexes of Xshort in Xlong'''
-#     from scipy import spatial
-#     tree = spatial.KDTree(Xlong)
-#     _, minid = tree.query(Xshort)   
-#     return minid
+def center_pairs(Xlong, Xshort):
+    '''find indexes of Xshort in Xlong'''
+    from scipy import spatial
+    tree = spatial.KDTree(Xlong)
+    _, minid = tree.query(Xshort)   
+    return minid
 
 
-# def brightness(image, mask, labels):
-#     '''measure raw image intenslity for each mask label'''
-#     intensity = []
-#     for l in labels:
-#         intensity.append(image[mask==l].mean())
-#         progressBar(l,len(labels))
+def brightness(image, mask, labels):
+    '''measure raw image intenslity for each mask label'''
+    intensity = []
+    for l in labels:
+        intensity.append(image[mask==l].mean())
+        progressBar(l,len(labels))
         
-#     return intensity 
+    return intensity 
 
-# # folder = r"D:\HBEC\s2_250_500"
-# folder = r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)"
-# raw_list = sorted(glob.glob(folder + "/*.tif"))
-# mask_list = []
-# for raw in raw_list:
-#     # mask_folder = os.path.dirname(raw) + "/masks/"
-#     # mask_name = os.path.basename(raw).split('.')[0] + "_seg.npy"
-#     # mask_list.append(mask_folder + mask_name)
-#     mask_path = os.path.join(
-#         str(pathlib.Path(raw).parents[0]), 
-#         "Mask", 
-#         raw.split(os.sep)[-1].split(".")[0]+"_cp_masks.png"
-#         )    
-#     mask_list.append(mask_path)
+# folder = r"D:\HBEC\s2_250_500"
+folder = r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)"
+raw_list = sorted(glob.glob(folder + "/*.tif"))
+mask_list = []
+for raw in raw_list:
+    # mask_folder = os.path.dirname(raw) + "/masks/"
+    # mask_name = os.path.basename(raw).split('.')[0] + "_seg.npy"
+    # mask_list.append(mask_folder + mask_name)
+    mask_path = os.path.join(
+        str(pathlib.Path(raw).parents[0]), 
+        "Mask", 
+        raw.split(os.sep)[-1].split(".")[0]+"_cp_masks.png"
+        )    
+    mask_list.append(mask_path)
+
+
+
+# %% TEST CELL CENTERS AND BOUNDARIES WITH VORONOI
+# NEXT: COUNT NEIGHBOUR NUMBER FOR EACH CELL
+from scipy.spatial import Voronoi, voronoi_plot_2d
+fig, ax = plt.subplots(1,1, figsize=(8,8))
+w = 1000
+num = 600
+for praw, pmask in zip(raw_list[num:],mask_list[num:]):
+    print(praw,"\n", pmask)
+    img = cv2.imread(praw)[:w,:w]
+    mask = cv2.imread(pmask, flags=cv2.IMREAD_ANYDEPTH)[:w,:w]
+    ax.imshow(img)
+    ax.imshow(label2rgb(mask, bg_label=0), alpha=0.1)
+
+    x_cent, y_cent,_ = find_centers(mask)
+    ax.plot(x_cent, y_cent, '.', color="white", alpha=.3) 
+
+    points = np.vstack((x_cent, y_cent)).T
+    vor = Voronoi(points)
+    voronoi_plot_2d(vor, ax=ax, show_vertices=True, line_colors='r', line_width=1, line_alpha=0.3, point_size=2)
+
+
+    ax.set_xlim([0,w])
+    ax.set_ylim([0,w])
+    break
+
+
 # %%
 def pad_array_with_nans(arr, mid_idx, padd_arr_len=41):
     """

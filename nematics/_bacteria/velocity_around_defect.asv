@@ -20,7 +20,7 @@ sub_PIV_u = zeros(2*s_box+1);
 sub_PIV_v = zeros(2*s_box+1);
 
 total_count = 0;
-for n = 1:50%500
+for n = 1:100%500
     orient_filepath = [dir_info_orient(n).folder '\' dir_info_orient(n).name];
     ang = imread(orient_filepath);
     [l,w] = size(ang);
@@ -61,7 +61,7 @@ sub_nx2 = sub_nx1;
 sub_ny2 = sub_nx1;
 
 i_count = 0;
-for i = 1:10%length(s_x)
+for i = 1:length(s_x)
     % ---  check if box around the defects fits in the PIV field  -----
     if (s_x(i)-box)>1 && (s_y(i)-box)>1 && (s_x(i)+box)<w && (s_y(i)+box)<l
         %             take PIV sub-window around the defect
