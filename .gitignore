@@ -4,6 +4,7 @@
 *.autosave
 *.slx.r*
 *.mdl.r*
+*xml
 
 # Derived content-obscured files
 *.p
@@ -31,5 +32,4 @@ codegen/
 
 # Cloud based storage dotfile
 .MATLABDriveTag
-*.xml
 
