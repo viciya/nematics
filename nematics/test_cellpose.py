@@ -79,28 +79,95 @@ for raw in raw_list:
 # %% TEST CELL CENTERS AND BOUNDARIES WITH VORONOI
 # NEXT: COUNT NEIGHBOUR NUMBER FOR EACH CELL
 from scipy.spatial import Voronoi, voronoi_plot_2d
+
+colors = plt.cm.tab10(np.arange(10))
+
 fig, ax = plt.subplots(1,1, figsize=(8,8))
-w = 1000
-num = 600
-for praw, pmask in zip(raw_list[num:],mask_list[num:]):
-    print(praw,"\n", pmask)
-    img = cv2.imread(praw)[:w,:w]
-    mask = cv2.imread(pmask, flags=cv2.IMREAD_ANYDEPTH)[:w,:w]
-    ax.imshow(img)
-    ax.imshow(label2rgb(mask, bg_label=0), alpha=0.1)
+w, dw = 500, 1000
+num = 300
+dt = 1
+for (i,praw), pmask in zip(enumerate(raw_list[num::dt]),mask_list[num::dt]):
+    print(i, praw,"\n", pmask)
+    img = cv2.imread(praw)[w:w+dw,w:w+dw]
+    mask = cv2.imread(pmask, flags=cv2.IMREAD_ANYDEPTH)[w:w+dw,w:w+dw]
+    if i==0:
+        ax.imshow(img)
+        # ax.imshow(label2rgb(mask, bg_label=0), alpha=0.1)
 
     x_cent, y_cent,_ = find_centers(mask)
-    ax.plot(x_cent, y_cent, '.', color="white", alpha=.3) 
+    ax.plot(x_cent, y_cent, 'o', color=colors[i], alpha=.3) 
 
     points = np.vstack((x_cent, y_cent)).T
     vor = Voronoi(points)
-    voronoi_plot_2d(vor, ax=ax, show_vertices=True, line_colors='r', line_width=1, line_alpha=0.3, point_size=2)
+    voronoi_plot_2d(vor, ax=ax, show_vertices=False, line_colors=colors[i], line_width=2, line_alpha=0.5, point_size=2)
 
 
-    ax.set_xlim([0,w])
-    ax.set_ylim([0,w])
-    break
+    ax.set_xlim([0,dw])
+    ax.set_ylim([0,dw])
+    # break
+    if i==1:
+        break
+# %%
+phi = mask
+width = 1
+e = np.roll(phi,-width,axis=1) # eastern neighbor
+w = np.roll(phi,width,axis=1) # western neighbor
+n = np.roll(phi,width,axis=0) # northern neighbor
+s = np.roll(phi,-width,axis=0) # southern neighbor
+ne = np.roll(e,width,axis=0)
+se = np.roll(e,-width,axis=0)
+nw = np.roll(w,width,axis=0)
+sw = np.roll(w,-width,axis=0)
+int_angles = [e, ne, n, nw, w, sw, s, se, e]
 
+k = np.zeros_like(phi).astype(np.int8)
+for i in range(len(int_angles)-2):
+    print(int_angles[i+1].shape)
+
+    k += (np.abs(int_angles[i+1]-int_angles[i])>0).astype(np.int8)
+
+# plt.imshow(k)
+# plt.imshow(k, "jet")
+plt.imshow(label2rgb(mask, bg_label=0), alpha=0.5)
+plt.imshow(k, "jet", alpha=0.5)
+
+from skimage.feature import peak_local_max
+coordinates = peak_local_max(k, min_distance=11)
+plt.plot(coordinates[:, 1], coordinates[:, 0], 'ro')
+# %%
+from skimage.morphology import skeletonize
+from skimage.segmentation import find_boundaries
+
+def count_different_neighbors(arr):
+    """
+    Counts the number of neighbors that have different values in a 2D NumPy array.
+    Returns a 2D array of the same size as the input array.
+    """
+    rows, cols = arr.shape
+    output_arr = np.zeros((rows, cols), dtype=np.int8)
+    for i in range(1, rows - 1):
+        for j in range(1, cols - 1):
+            neighbors = [arr[i-1,j-1], arr[i-1,j], arr[i-1,j+1], arr[i,j-1], arr[i,j+1], arr[i+1,j-1], arr[i+1,j], arr[i+1,j+1]]
+            # neighbors = [x for x in neighbors if x != 0]
+            if len(set(neighbors)) > 2:
+                output_arr[i, j] = 1
+    return output_arr
+
+a = find_boundaries(mask, mode='inner')
+a = cv2.dilate(a.astype(np.float32), None)
+skeleton = skeletonize(a)
+
+# dst = cv2.cornerHarris(skeleton.astype("float32"),2,3,0.04)
+# dst = cv2.dilate(dst,None)
+# skeleton[dst>0.01*dst.max()]=255
+plt.figure()
+plt.imshow(label2rgb(mask, bg_label=0), alpha=0.5)
+plt.imshow(skeleton, "gray", alpha=0.5)
+# plt.imshow(count_different_neighbors(mask), alpha=.6)
+# dst_th = dst>0.02*dst.max()
+# xor = np.logical_and(dst_th, skeleton)
+# # plt.imshow(xor, alpha=.6)
+# plt.imshow(dst_th, alpha=.6)
 
 # %%
 def pad_array_with_nans(arr, mid_idx, padd_arr_len=41):
