@@ -1,6 +1,7 @@
 # import os
 # import scipy as sp
 # import numpy as np
+import pickle
 import numpy as np
 import pandas as pd
 # import matplotlib.pyplot as plt
@@ -126,8 +127,9 @@ class image_series:
             ori = img.calc_orientation(self.orientation_path, self.save_orientation, window_size)
 
             if self.save_orientation:
-                name = 'orientation_from_' + img.name + '.npy'
-                np.save(self.orientation_path + name, ori)
+                name = 'orientation_from_' + img.name + '.pkl'
+                with open(self.orientation_path + name, 'wb') as f:
+                    pickle.dump(ori, f)
 
     def detect_defects_serial(self, window_size=None):
         """
@@ -247,8 +249,10 @@ class image_series:
                                                 flags=0)
 
             if self.save_flow:
-                name = 'velocity_from_' + im1.name.split('.')[0] + '.npy'
-                np.save(self.velocity_path + name, flow)
+                name = 'velocity_from_' + im1.name.split('.')[0] + '.pkl'
+                with open(self.velocity_path + name, 'wb') as f:
+                    pickle.dump(flow,f)
+
 
         return None
 
@@ -262,8 +266,8 @@ class image_series:
         window = self.velocity_around_defect_window if window_size is None else window_size
         half_window = np.floor(window / 2)
         final_size = int(np.floor(half_window / np.sqrt(2)))
-        # mean_arr_plus = np.zeros(shape=(final_size, final_size, 2))
-        # mean_arr_minus = np.zeros_like(mean_arr_plus)
+        mean_arr_plus = np.zeros(shape=(final_size, final_size, 2))
+        mean_arr_minus = np.zeros_like(mean_arr_plus)
         total_number_of_minus, total_number_of_plus = 0, 0
         minus_defect_num = []
         plus_defect_num = []
@@ -277,18 +281,18 @@ class image_series:
             # get the dataframe and the array
             min_path = self.defects_csv_path + img.name + '_MinusHalf.csv'
             plus_path = self.defects_csv_path + img.name + '_PlusHalf.csv'
-            flow_path = self.velocity_path + 'velocity_from_' + img.name + '.npy'
+            flow_path = self.velocity_path + 'velocity_from_' + img.name + '.pkl'
             minus_df = pd.read_csv(min_path, header=0, index_col=0)
             plus_df = pd.read_csv(plus_path, header=0, index_col=0)
-            flow_arr = np.load(flow_path)
+            flow_arr = np.load(flow_path,allow_pickle=True)
 
             # minus
-            # number_of_defects_minus, mean_arr_minus = img.crop_and_tilt(defects_df=minus_df,
-            #                                                             velocity_array=flow_arr,
-            #                                                             half_window=half_window,
-            #                                                             save=False,
-            #                                                             path=self.velocity_around_minus_path,
-            #                                                             plot=plot)
+            number_of_defects_minus, mean_arr_minus = img.crop_and_tilt(defects_df=minus_df,
+                                                                        velocity_array=flow_arr,
+                                                                        half_window=half_window,
+                                                                        save=False,
+                                                                        path=self.velocity_around_minus_path,
+                                                                        plot=plot)
             #plus
             number_of_defects_plus, mean_arr_plus = img.crop_and_tilt(defects_df=plus_df,
                                                                       velocity_array=flow_arr,
@@ -298,21 +302,22 @@ class image_series:
                                                                       plot=plot)
 
             total_number_of_plus += number_of_defects_plus
-            # total_number_of_minus += number_of_defects_minus
+            total_number_of_minus += number_of_defects_minus
             plus_defect_num.append(number_of_defects_plus)
-            # minus_defect_num.append(number_of_defects_minus)
+            minus_defect_num.append(number_of_defects_minus)
 
             # save
             if self.save_velocity:
-                # np.save(self.velocity_around_minus_path + '_mean_arr_from_' + img.name + '.npy', mean_arr_minus)
-                np.save(self.velocity_around_plus_path + '_mean_arr_from_' + img.name + '.npy', mean_arr_plus)
+                name = '_mean_arr_from_' + img.name + '.pkl'
+                with open(self.velocity_around_plus_path + name, 'wb') as f:
+                    pickle.dump(mean_arr_plus, f)
 
         # calculate average over the mean arrays
         final_plus = np.zeros_like(mean_arr_plus)
-        # final_minus = np.zeros_like(mean_arr_minus)
+        final_minus = np.zeros_like(mean_arr_minus)
 
         # add plus
-        array_list = glob.glob(self.velocity_around_plus_path + r"\*npy")
+        array_list = glob.glob(self.velocity_around_plus_path + r"\*pkl")
         array_list = natsorted(array_list, key=lambda y: y.lower())
 
         arr_shape_for_mean_calc = (len(array_list), *mean_arr_plus.shape)
@@ -326,53 +331,59 @@ class image_series:
                 break
 
             # agg_plus[idx] = np.load(arr_path)
-            arr = np.load(arr_path)
+            with open(arr_path, 'rb') as f:
+                arr = pickle.load(f)
             arr = arr * plus_defect_num[idx] / total_number_of_plus
             final_plus += arr
         # final_plus = agg_plus.mean(axis=0)
 
         # add minus
         # todo: return before submition
-        # array_list = glob.glob(self.velocity_around_minus_path + r"\*npy")
-        # array_list = natsorted(array_list, key=lambda y: y.lower())
-        #
-        # for idx, arr_path in enumerate(array_list):
-        #
-        #     # there is 1 less flow image thus we skip the last image
-        #
-        #     if idx + 1 >= len(self.images):
-        #         break
-        #     # arr = np.load(arr_path)
-        #     #change the
-        #     # arr = arr * minus_defect_num[idx] / total_number_of_minus
-        #     # arr = arr/
-        #     agg_minus[idx] = np.load(arr_path)
-        # final_minus += agg_minus.mean(axis=0)
+        array_list = glob.glob(self.velocity_around_minus_path + r"\*npy")
+        array_list = natsorted(array_list, key=lambda y: y.lower())
+
+        for idx, arr_path in enumerate(array_list):
+
+            # there is 1 less flow image thus we skip the last image
+
+            if idx + 1 >= len(self.images):
+                break
+            # arr = np.load(arr_path)
+            #change the
+            # arr = arr * minus_defect_num[idx] / total_number_of_minus
+            # arr = arr/
+            agg_minus[idx] = np.load(arr_path)
+        final_minus += agg_minus.mean(axis=0)
         #
         # # save final
-        # if self.save_velocity:
-        #     np.save(self.velocity_around_minus_path + 'final_average_minus' + '.npy', final_minus)
-        #     np.save(self.velocity_around_plus_path + 'final_average_plus' + '.npy', final_plus)
+        if self.save_velocity:
+            # with open(self.velocity_around_minus_path + 'final_average_minus.pkl', 'wb') as f:
+            #     pickle.dump(final_minus, f)
+            with open(self.velocity_around_plus_path + 'final_average_plus.pkl', 'wb') as f:
+                pickle.dump(final_plus, f)
 
 
-    def velocity_averaging_2(self, window_size=None):
+    def velocity_averaging_2(self, window_size=None,num_threads=-1):
 
         window = self.velocity_around_defect_window if window_size is None else window_size
         half_window = np.floor(window / 2)
-        final_size = int(np.floor(half_window / np.sqrt(2)))
-        mean_arr_plus = np.zeros(shape=(final_size, final_size, 2))
-        mean_arr_minus = np.zeros_like(mean_arr_plus)
+        # final_size = int(np.floor(half_window / np.sqrt(2)))
+        # mean_arr_plus = np.zeros(shape=(final_size, final_size, 2))
+        # mean_arr_minus = np.zeros_like(mean_arr_plus)
         total_number_of_minus, total_number_of_plus = 0, 0
         minus_defect_num = []
         plus_defect_num = []
 
         def process_image(image):
+            "runs crop_and_tilt on an image "
+
             min_path = self.defects_csv_path + image.name + '_MinusHalf.csv'
             plus_path = self.defects_csv_path + image.name + '_PlusHalf.csv'
-            flow_path = self.velocity_path + 'velocity_from_' + image.name + '.npy'
+            flow_path = self.velocity_path + 'velocity_from_' + image.name + '.pkl'
             minus_df = pd.read_csv(min_path, header=0, index_col=0)
             plus_df = pd.read_csv(plus_path, header=0, index_col=0)
-            flow_arr = np.load(flow_path)
+            with open(flow_path,'rb') as f:
+                flow_arr = pickle.load(f)
 
             number_of_defects_minus, mean_arr_minus = image.crop_and_tilt(defects_df=minus_df,
                                                                           velocity_array=flow_arr,
@@ -383,9 +394,15 @@ class image_series:
 
             return number_of_defects_minus, mean_arr_minus, number_of_defects_plus, mean_arr_plus
 
-        results = Parallel(n_jobs=-1)(delayed(process_image)(image) for image in self.images[:-2])
+        # res = []
+        # for image in self.images[:-1]:
+        #     res.append(process_image(image))
 
-        for idx, image in enumerate(self.images[:-2]):
+
+        results = Parallel(n_jobs=num_threads)(delayed(process_image)(image) for image in self.images[:-1])
+
+        # until here I checked the results #########################################################
+        for idx, image in enumerate(self.images[:-1]):
             number_of_defects_minus, mean_arr_minus, number_of_defects_plus, mean_arr_plus = results[idx]
             total_number_of_minus += number_of_defects_minus
             total_number_of_plus += number_of_defects_plus
@@ -393,26 +410,33 @@ class image_series:
             plus_defect_num.append(number_of_defects_plus)
 
             if self.save_velocity:
-                np.save(self.velocity_around_minus_path + '_mean_arr_from_' + image.name + '.npy', mean_arr_minus)
-                np.save(self.velocity_around_plus_path + '_mean_arr_from_' + image.name + '.npy', mean_arr_plus)
+                with open(self.velocity_around_minus_path + '_mean_arr_from_' + image.name + '.pkl', 'wb') as f:
+                    pickle.dump(mean_arr_minus, f)
+                with open(self.velocity_around_plus_path + '_mean_arr_from_' + image.name + '.pkl', 'wb') as f:
+                    pickle.dump(mean_arr_plus, f)
 
         final_plus = self.calculate_final_average(self.velocity_around_plus_path, plus_defect_num, total_number_of_plus)
         final_minus = self.calculate_final_average(self.velocity_around_minus_path, minus_defect_num,
                                                    total_number_of_minus)
 
         if self.save_velocity:
-            np.save(self.velocity_around_minus_path + 'final_average_minus' + '.npy', final_minus)
-            np.save(self.velocity_around_plus_path + 'final_average_plus' + '.npy', final_plus)
+            with open(self.velocity_around_minus_path + 'final_average_minus.pkl', 'wb') as f:
+                pickle.dump(final_minus, f)
+            with open(self.velocity_around_plus_path + 'final_average_plus.pkl', 'wb') as f:
+                pickle.dump(final_plus, f)
 
 
     def calculate_final_average(self, path, defect_nums, total_defects):
-        final_average = np.zeros_like(np.load(path + "_mean_arr_from_" + self.images[0].name + ".npy"))
+        final_average = np.zeros_like(np.load(path + "_mean_arr_from_" + self.images[0].name + ".pkl", allow_pickle=True))
 
-        array_list = natsorted(glob.glob(path + r"\*npy"), key=lambda y: y.lower())
-        array_list = array_list[:len(self.images) - 2]
+
+        # should be in memory
+        array_list = natsorted(glob.glob(path + r"\*pkl"), key=lambda y: y.lower())
+        array_list = array_list[:len(self.images) - 1]
 
         for i, arr_path in enumerate(array_list):
-            arr = np.load(arr_path)
+            with open(arr_path, 'rb') as f:
+                arr = pickle.load(f)
             arr = arr * defect_nums[i] / total_defects
             final_average += arr
 
@@ -423,5 +447,5 @@ class image_series:
         self.optical_flow()
         # self.calc_orientation()
         self.detect_defects()
-        self.velocity_averaging()
+        self.velocity_averaging_2()
 
