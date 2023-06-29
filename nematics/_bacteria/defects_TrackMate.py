@@ -28,7 +28,7 @@ def cart2pol(x, y):
     return(rho, phi)
 
 DURATION_MINIMUM = 10
-folder = r"C:\Users\USER\Downloads\BEER\March 1st 100fps 40X 50-50 5um gap/"
+folder = r"C:\Users\victo\OneDrive - BGU\NEMATICS\DATA\March 1st 100fps 40X 50-50 5um gap/"
 spots = pd.read_csv(folder + "TrackMate/n_def_spots.csv", skiprows=[1,2,3])
 tracks_all = pd.read_csv(folder + "TrackMate/n_def_tracks.csv", skiprows=[1,2,3])
 # spots = pd.read_csv(r"C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\TrackMate1-1\spots_p.csv", skiprows=[1,2,3])
@@ -157,7 +157,7 @@ methods = ['cv2.TM_CCOEFF']
 
 pad = 200
 
-im_path_list = glob.glob(r"C:\Users\USER\Downloads\BEER\March 1st 100fps 40X 50-50 5um gap\orient\*.tif")
+im_path_list = glob.glob(r"C:\Users\victo\OneDrive - BGU\NEMATICS\DATA\March 1st 100fps 40X 50-50 5um gap\orient\*.tif")
 
 orient_im =  cv2.imread(im_path_list[0], -1)
 # plt.imread(im_path_list[0])[:,:,0].astype(np.uint16) 
@@ -276,7 +276,7 @@ for i,t_id in enumerate(tracks_ids):
 
 
 # %%
-mat = scipy.io.loadmat(r"C:\Users\USER\Downloads\BEER\March 1st 100fps 40X 50-50 1um gap\SUMMARY.mat")
+mat = scipy.io.loadmat(r"C:\Users\victo\OneDrive - BGU\NEMATICS\DATA\March 1st 100fps 40X 50-50 5um gap\SUMMARY.mat")
 for i,t in enumerate(mat["defNum"]):
     print(t[0].shape)
     if len(t[0])>2 and i==230:
