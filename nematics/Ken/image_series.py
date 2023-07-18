@@ -126,10 +126,10 @@ class image_series:
         for img in self.images:
             ori = img.calc_orientation(self.orientation_path, self.save_orientation, window_size)
 
-            if self.save_orientation:
-                name = 'orientation_from_' + img.name + '.pkl'
-                with open(self.orientation_path + name, 'wb') as f:
-                    pickle.dump(ori, f)
+            # if self.save_orientation:
+            #     name = 'orientation_from_' + img.name + '.pkl'
+            #     with open(self.orientation_path + name, 'wb') as f:
+            #         pickle.dump(ori, f)
 
     def detect_defects_serial(self, window_size=None):
         """
