@@ -83,28 +83,35 @@ from scipy.spatial import Voronoi, voronoi_plot_2d
 colors = plt.cm.tab10(np.arange(10))
 
 fig, ax = plt.subplots(1,1, figsize=(8,8))
-w, dw = 500, 1000
-num = 300
+h, w, dw = 200, 600, 500
+num = 200
 dt = 1
 for (i,praw), pmask in zip(enumerate(raw_list[num::dt]),mask_list[num::dt]):
     print(i, praw,"\n", pmask)
-    img = cv2.imread(praw)[w:w+dw,w:w+dw]
-    mask = cv2.imread(pmask, flags=cv2.IMREAD_ANYDEPTH)[w:w+dw,w:w+dw]
+    if dw==-1:
+        img = cv2.imread(praw)[:,:,0]
+        mask = cv2.imread(pmask, flags=cv2.IMREAD_ANYDEPTH)    
+    else: 
+        img = cv2.imread(praw)[h:h+dw,w:w+dw,0]
+        mask = cv2.imread(pmask, flags=cv2.IMREAD_ANYDEPTH)[h:h+dw,w:w+dw]
     if i==0:
-        ax.imshow(img)
-        # ax.imshow(label2rgb(mask, bg_label=0), alpha=0.1)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+        img_clahe = clahe.apply(img)
+        ax.imshow(255-img_clahe, "gray")         
+        # ax.imshow(img)
+        # ax.imshow(label2rgb(mask, bg_label=0), alpha=0.2)
 
     x_cent, y_cent,_ = find_centers(mask)
     ax.plot(x_cent, y_cent, 'o', color=colors[i], alpha=.3) 
 
     points = np.vstack((x_cent, y_cent)).T
     vor = Voronoi(points)
-    voronoi_plot_2d(vor, ax=ax, show_vertices=False, line_colors=colors[i], line_width=2, line_alpha=0.5, point_size=2)
+    voronoi_plot_2d(vor, ax=ax, show_vertices=False, line_colors="red", line_width=2, line_alpha=0.5, point_size=2)
 
 
-    ax.set_xlim([0,dw])
-    ax.set_ylim([0,dw])
-    # break
+    ax.set_xlim([0,img.shape[0]])
+    ax.set_ylim([0,img.shape[0]])
+    break
     if i==1:
         break
 # %%
