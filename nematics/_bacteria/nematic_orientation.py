@@ -17,7 +17,7 @@ from defects import *
 # %matplotlib qt
 
 # %%
-image_list = glob.glob(r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\*.tif")
+image_list = glob.glob(r"C:\Users\victo\OneDrive - BGU\BEER\B-sub-sur-minus-in-supernatant-40X-100fps\*.tif")
 from natsort import natsorted
 image_list = natsorted(image_list, key=lambda y: y.lower())
 
@@ -69,7 +69,7 @@ y = np.arange(0,pix_y)
 xx, yy = np.meshgrid(x, y)
 
 ori, coh, E = orientation_analysis(img, 31)
-cv2.imwrite(r"C:\Users\victo\OneDrive\Desktop\orient.tif", ori[::3,::3])
+# cv2.imwrite(r"C:\Users\victo\OneDrive\Desktop\orient.tif", ori[::3,::3])
 
 
 k = compute_topological_charges(ori, int_area='cell', origin='upper')
