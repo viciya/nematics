@@ -7,6 +7,7 @@ import pandas as pd
 from scipy.ndimage import rotate, gaussian_filter
 import pickle 
 from scipy.stats import circmean, circstd, sem
+from joblib import Parallel, delayed
 
 
 sys.path.append('../vasco_scripts')  # add the relative path to the folder
@@ -105,7 +106,8 @@ def plot_rolling_average(df,ax, what_key, basis_key, show=True, win=15, color="r
     rad2deg = 180/np.pi if avfunc==circmean else 1.
     df = df.sort_values(by=basis_key)
     df[what_key+"_ave"] = roll_func(df[what_key], df[basis_key], win, avfunc, *args,**kwargs)*rad2deg
-    df[what_key+"_std"] = roll_func(df[what_key], df[basis_key], win, stdfunc)*rad2deg
+    # TODO test if same *args work for std and average
+    df[what_key+"_std"] = roll_func(df[what_key], df[basis_key], win, stdfunc, *args)*rad2deg
     df[what_key+"_count"] = roll_func(1.*df[what_key].abs(), df[basis_key], win, np.sum)
     if show:
         ax.plot(df[basis_key], df[what_key+"_ave"], "-", color=color, alpha=.6, linewidth=3)
