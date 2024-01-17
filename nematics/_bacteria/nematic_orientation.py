@@ -100,3 +100,4 @@ ax.set_ylabel('y (in pixels)')
 
 px = np.argwhere(np.abs(k)>.1)
 plt.plot(px[:,1],px[:,0],"+")
+plt.show()

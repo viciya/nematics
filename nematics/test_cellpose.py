@@ -15,6 +15,34 @@ import seaborn as sns
 from pip._internal.cli.progress_bars import get_download_progress_renderer
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
+from natsort import natsorted
+
+def analyze_defects(img, sigma=15):
+    # Calculate mgrid
+    yy, xx = np.mgrid[0:img.shape[0], 0:img.shape[1]]
+    
+    # Calculate orientation analysis
+    ori, coh, E = orientation_analysis(img, sigma)
+    
+    # Compute topological charges
+    k = compute_topological_charges(-ori, int_area='cell', origin='lower')
+    
+    # Localize defects
+    defects = localize_defects(k, x_grid=xx, y_grid=yy)
+    
+    # Compute defect orientation
+    compute_defect_orientations(-ori, defects, method='interpolation', x_grid=xx[0,:], y_grid=yy[:,0], interpolation_radius=5, min_sep=1)
+    
+    # Filter defects by charge
+    plushalf = defects[defects['charge']==.5]
+    minushalf = defects[defects['charge']==-.5]
+    
+    return ori, plushalf, minushalf
+
+
+image_list = glob.glob(r"C:\Users\victo\Downloads\SB_lab\BEER_DATA\ISF defects new\6\*.tif")
+image_list = natsorted(image_list, key=lambda y: y.lower())
+analyze_defects(cv2.imread(image_list[0])[:,:,0], sigma=1)
 
 # %%
 %matplotlib qt

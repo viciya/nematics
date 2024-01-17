@@ -25,7 +25,7 @@ def analyze_defects(img, sigma=15):
     k = compute_topological_charges(-ori, int_area='cell', origin='lower')
     
     # Localize defects
-    defects = localize_defects(k, x_grid=xx, y_grid=yy)
+    defects = localize_defects(k)#, x_grid=xx, y_grid=yy)
     
     # Compute defect orientation
     compute_defect_orientations(-ori, defects, method='interpolation', x_grid=xx[0,:], y_grid=yy[:,0], interpolation_radius=5, min_sep=1)
@@ -42,9 +42,13 @@ def center_pairs(Xlong, Xshort):
     tree = spatial.KDTree(Xlong)
     return tree.query(Xshort)   
 
-def plot_orientation_analysis(img, ori, df_plus, df_minus, ax=False, colors=["lawngreen","r","b"], alpha=.8, imshow=True):
+def plot_orientation_analysis(img, ori, df_plus, df_minus, ax=False, 
+                              colors=["lawngreen","r","b"], alpha=.8, imshow=True, 
+                              scale=50, scale_half=25, width=.01, markersize=8
+                              ):
     '''If color is False skip do not plot the feature'''
-    alpha_half, scale_half, s = alpha, 25 , 15
+    s = 15
+
     y, x = np.mgrid[0:img.shape[0], 0:img.shape[1]]
 
     if not ax:
@@ -60,20 +64,22 @@ def plot_orientation_analysis(img, ori, df_plus, df_minus, ax=False, colors=["la
         ax.quiver(x[::s,::s], y[::s,::s],
             np.cos(ori)[::s,::s], np.sin(ori)[::s,::s], 
             headaxislength=0, headwidth=0, headlength=0, 
-            color=colors[0], scale=60, pivot='mid', alpha=.7)
+            color=colors[0], scale=scale, pivot='mid', alpha=.7)
   
     if colors[1]:
-        ax.plot(df_plus['x'], df_plus['y'],'o',markersize=6, alpha=alpha_half, color=colors[1])
+        ax.plot(df_plus['x'], df_plus['y'],'o',markersize=markersize, alpha=alpha, color=colors[1])
         ax.quiver(df_plus['x'], df_plus['y'], 
             np.cos(df_plus['ang1']), -np.sin(df_plus['ang1']), 
-            headaxislength=0, headwidth=0, headlength=0, color=colors[1], scale=scale_half, alpha=alpha_half)
+            headaxislength=0, headwidth=0, headlength=0, color=colors[1], scale=scale_half, alpha=alpha,
+            width=width)
 
     if colors[2]:
-        ax.plot(df_minus['x'], df_minus['y'],'o',markersize=6, alpha=alpha_half, color=colors[2])
+        ax.plot(df_minus['x'], df_minus['y'],'o',markersize=markersize, alpha=alpha, color=colors[2])
         for j in range(3):
             ax.quiver(df_minus['x'], df_minus['y'], 
                 np.cos(df_minus['ang'+str(j+1)]), -np.sin(df_minus['ang'+str(j+1)]), 
-                headaxislength=0, headwidth=0, headlength=0, color=colors[2], scale=scale_half+10, alpha=alpha_half)
+                headaxislength=0, headwidth=0, headlength=0, color=colors[2], scale=scale_half+10, alpha=alpha,
+                width=width)
 
 import sys,time,random
 def progressBar(count_value, total, suffix=''):
