@@ -48,7 +48,7 @@ def get_orientation_angle(u, v, type='nematic'):
 # Computation of topological charges
 # =============================================================================
 
-def compute_topological_charges(phi, type='nematic', int_area='cell', width=1, boundary='real', origin = 'upper'):
+def compute_topological_charges(phi, type='nematic', int_area='cell', width=1, boundary='real', origin='upper'):
     # Get angles of grid points on the integration path.
     int_angles = get_angles_on_integration_path(phi, int_area, width, origin)
     # Compute the topological charges for all points by computing differences along the integration path.

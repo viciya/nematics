@@ -167,3 +167,55 @@ def equlalize_trajectories(plus_minus_df, p_idx, m_idx):
     df2.set_index('FRAME', inplace=True)
     df_ = pd.concat([df1, df2], axis=1).dropna()
     return df_.set_axis(["plus_id","xp","yp","angp1", "min_id","xm","ym", "angm1","angm2","angm3"], axis=1)
+
+# = = = FIND PAIRS FINCTIONS = = == = = = = = = = = = = = = = = = = = = = = = =
+
+def pair_list(PlusAndMinusTM, dist_thresh):
+    """
+    Finds unique labels of plus and minus defect pairs
+    
+    Returns: dataframe["minusID","plusID","dist"]
+    """
+
+    pairs = []
+
+    for frame in PlusAndMinusTM["FRAME"].unique():
+        # print(frame)
+        p_idx = np.logical_and(PlusAndMinusTM["FRAME"]==frame, PlusAndMinusTM["charge"]==.5)
+        m_idx = np.logical_and(PlusAndMinusTM["FRAME"]==frame, PlusAndMinusTM["charge"]==-.5)
+        plus_xy = PlusAndMinusTM[["TRACK_ID","x_img1","y_img1","ang1"]][p_idx]
+        minus_xy = PlusAndMinusTM[["TRACK_ID","x_img1","y_img1","ang1","ang2","ang3"]][m_idx]
+
+        dist, idx = center_pairs(minus_xy[["x_img1","y_img1"]], plus_xy[["x_img1","y_img1"]])
+        # set a distance that define that defects are a pair (50)
+        dist_TF = dist<dist_thresh
+        # Notice: some TRACK_IDs are nan, meaning that they are not a part from any trajectory
+        pairs.append([
+            minus_xy["TRACK_ID"].iloc[idx][dist_TF].values,#.astype(np.int_), 
+            plus_xy["TRACK_ID"][dist_TF].values,#.astype(np.intc)
+            dist[dist_TF]
+            ]) 
+        # break
+
+    pairs_df = pd.DataFrame(np.concatenate(pairs, axis=1).T, columns=["minus", "plus","dist"]).dropna()#.drop_duplicates()
+    _, indices = np.unique(pairs_df["minus"], return_index=True)
+    return pairs_df.iloc[indices].copy()    
+
+PAIR_DIST_THRESH = 50
+MINIMAL_TRACK_LENGTH = 5
+
+def trajectory_pair_list(PlusAndMinusTM, minimal_track=MINIMAL_TRACK_LENGTH, dist_thresh=PAIR_DIST_THRESH):
+
+    pairs_df = pair_list(PlusAndMinusTM, dist_thresh=dist_thresh)
+
+    all_pairs_df = []
+    for m,n in zip(pairs_df["minus"], pairs_df["plus"]):
+        m_idx = np.logical_and(PlusAndMinusTM["TRACK_ID"]==m, PlusAndMinusTM["charge"]==-.5)
+        p_idx = np.logical_and(PlusAndMinusTM["TRACK_ID"]==n, PlusAndMinusTM["charge"]==.5)
+
+        if m_idx.sum()>minimal_track and p_idx.sum()>minimal_track:
+
+            dff_ = equlalize_trajectories(PlusAndMinusTM, p_idx, m_idx)
+            all_pairs_df.append(dff_)
+
+    return pd.concat(all_pairs_df)   
