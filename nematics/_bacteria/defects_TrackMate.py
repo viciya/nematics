@@ -12,7 +12,7 @@ from sklearn.neighbors import KDTree, NearestNeighbors
 from scipy.spatial.distance import cdist
 import pandas as pd
 from scipy.spatial import distance
-# %matplotlib qt
+%matplotlib qt
 
 def mean_square_displacement(x,y):
     r = np.sqrt(x**2 + y**2)
@@ -31,8 +31,8 @@ DURATION_MINIMUM = 10
 folder = r"C:\Users\victo\OneDrive - BGU\NEMATICS\DATA\March 1st 100fps 40X 50-50 5um gap/"
 spots = pd.read_csv(folder + "TrackMate/n_def_spots.csv", skiprows=[1,2,3])
 tracks_all = pd.read_csv(folder + "TrackMate/n_def_tracks.csv", skiprows=[1,2,3])
-# spots = pd.read_csv(r"C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\TrackMate1-1\spots_p.csv", skiprows=[1,2,3])
-# tracks_all = pd.read_csv(r"C:\Users\USER\Downloads\B-sub-sur-minus-in-supernatant-40X-100fps\TrackMate1-1\tracks_p.csv", skiprows=[1,2,3])
+# spots = pd.read_csv(folder + "TrackMate/p_def_spots.csv", skiprows=[1,2,3])
+# tracks_all = pd.read_csv(folder + "TrackMate/p_def_tracks.csv", skiprows=[1,2,3])
 tracks_to_remove = tracks_all["TRACK_ID"][tracks_all["TRACK_DURATION"]<10].unique()
 tracks_ids = tracks_all["TRACK_ID"][tracks_all["TRACK_DURATION"]>=DURATION_MINIMUM].unique()
 
@@ -53,7 +53,7 @@ msd = []
 handness = []
 phi = []
 fig, axs = plt.subplots(1,1, figsize=(5,5))
-for i,t_id in enumerate(tracks_ids[:]):
+for i,t_id in enumerate(tracks_ids[50:]):
     # if i>0 and i<1000:
     idx = spots["TRACK_ID"]==t_id
     frame_idx = spots["FRAME"][spots["TRACK_ID"]==t_id].argsort()
