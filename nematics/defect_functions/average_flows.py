@@ -48,8 +48,12 @@ def rotate_flow_field(flow, angle):
     v = rotate(uv_rot[1], angle * 180/np.pi)
     return [u, v]  
 
-def defect_flow_frame_average(img1,img2, df_frame, defect_type="up", 
+def defect_flow_frame_average(img1,img2, df_frame, defect_type="up", vorticity=None, vortTh=.001,
                               box=(300,300), filt=1, sigma=15):
+    '''
+    vorticity = None/right/left
+    '''
+
     im_h, im_w = img1.shape
     width, height = box[0], box[1]
     width1, height1 = int(width/2**.5), int(height/2**.5)
@@ -82,6 +86,13 @@ def defect_flow_frame_average(img1,img2, df_frame, defect_type="up",
                 # image_crop = crop(255-img_clahe, cnt, width, height)[0] *** image
                 u,_ = crop(flow[:,:,0], cnt, width, height)
                 v,_ = crop(flow[:,:,1], cnt, width, height)
+
+                if vorticity:
+                    vort = curl_npgrad(np.stack((u, v), axis=-1)).mean()
+                    if (vorticity=="right" and vort<vortTh):
+                        continue
+                    elif (vorticity=="left" and vort>-vortTh):
+                        continue
 
                 #2 rotate velocity field (1. rotate vectors 2. rotate positions) 
                 # image_rot = rotate(image_crop, df["angp1"].iloc[i] * 180/np.pi) *** image
