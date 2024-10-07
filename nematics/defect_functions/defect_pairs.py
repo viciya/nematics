@@ -108,7 +108,7 @@ def roll_func(what,basis,window,func,*args,**kwargs):
     rolled = basis.apply(applyToWindow)
     return rolled
 
-def plot_rolling_average(df,ax, what_key, basis_key, show=True, win=15, color="red", avfunc=circmean, stdfunc=circstd, *args,**kwargs):
+def plot_rolling_average(df,ax, what_key, basis_key, show=True, win=15, color="red", avfunc=circmean, stdfunc=circstd, std=True, *args,**kwargs):
     rad2deg = 180/np.pi if avfunc==circmean else 1.
     df = df.sort_values(by=basis_key)
     df[what_key+"_ave"] = roll_func(df[what_key], df[basis_key], win, avfunc, *args,**kwargs)*rad2deg
@@ -117,9 +117,15 @@ def plot_rolling_average(df,ax, what_key, basis_key, show=True, win=15, color="r
     df[what_key+"_count"] = roll_func(1.*df[what_key].abs(), df[basis_key], win, np.sum)
     if show:
         ax.plot(df[basis_key], df[what_key+"_ave"], "-", color=color, alpha=.6, linewidth=3)
+        if std:
+            std_low = df[what_key+"_ave"]-df[what_key+"_std"]
+            std_high = df[what_key+"_ave"]+df[what_key+"_std"]
+        else:
+            std_low = df[what_key+"_ave"]-df[what_key+"_std"]/df[what_key+"_count"]**.5
+            std_high = df[what_key+"_ave"]+df[what_key+"_std"]/df[what_key+"_count"]**.5
         ax.fill_between(df[basis_key], 
-                        df[what_key+"_ave"]-df[what_key+"_std"]/df[what_key+"_count"]**.5, 
-                        df[what_key+"_ave"]+df[what_key+"_std"]/df[what_key+"_count"]**.5, 
+                        std_low, 
+                        std_high, 
                         color=color, alpha=.2) 
     return df[[basis_key, what_key+"_ave", what_key+"_std", what_key+"_count"]] 
 
