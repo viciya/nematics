@@ -156,3 +156,79 @@ def orienatation_frame_average(img1, df_frame, defect_type="up",
 
     if count:
         return circmean(np.stack(ori_list, axis=-1), axis=-1, low=-np.pi/2, high=np.pi/2), count
+    
+
+# --------- MultiTiff Tools ------------
+from PIL import Image
+import glob
+
+def multiTiff_to_list(tiff):
+    img_list = []
+    # Initialize a counter for the frames
+    frame_count = 0
+    # Loop through all frames in the TIFF file
+    while True:
+        try:
+            tiff.seek(frame_count)
+            img_list.append(np.array(tiff.copy()))
+            frame_count += 1
+        except EOFError:
+            break
+    return img_list
+
+def analyze_image_widths(directory, target_width, dw=10, make_plot=False, ax=None):
+    """
+    Analyzes the widths of TIFF images in a specified directory and plots a histogram of the widths.
+
+    Parameters:
+    - directory: str, the directory path containing the TIFF images.
+    - target_width: int, the target width for filtering images.
+    - dw: int, the width deviation for filtering images.
+    """
+    img_list = glob.glob(f"{directory}\\*CROPPED*\\*.tif")
+    width_all = []
+    tiff_list = []
+
+    for filename in img_list:
+        tiff = Image.open(filename)
+        image_width = tiff.size[0]        
+
+        if (target_width - dw) / 0.74 < image_width < (target_width + dw) / 0.74:
+            tiff_list.append(filename)
+            width_all.append(image_width)
+
+    if make_plot:
+        if ax is None:
+            fig, ax = plt.subplots(1,1,  figsize=(4,4)) 
+        ax.hist(0.74 * np.array(width_all), bins=len(width_all) // 10, rwidth=0.9)
+        ax.set_title(f"Total: {len(width_all)}")
+        ax.set_xlabel("$Width$", fontsize=12)
+        ax.set_ylabel("$Count$", fontsize=12)
+    
+    return tiff_list 
+
+def uv_time_average(tiff_path):
+    """
+    calulates average flow vx, vy from mulitiff path
+    """
+
+    tiff = Image.open(tiff_path)
+    tiff_frame_list = multiTiff_to_list(tiff)
+
+    u = np.zeros_like(tiff_frame_list[0], dtype=np.float32)
+    v = np.zeros_like(u)
+
+    for (i,img1),img2 in zip(enumerate(tiff_frame_list[:-1]), tiff_frame_list[1:]):
+        flow = cv2.calcOpticalFlowFarneback(img1,img2, None, 0.5, 3, 
+            winsize=15, iterations=3, poly_n=5, poly_sigma=1.2, flags=0) 
+        # flow[:,:,0] = gaussian_filter(flow[:,:,0], sigma=15)
+        # flow[:,:,1] = gaussian_filter(flow[:,:,1], sigma=15)
+        u += flow[..., 0]
+        v += flow[..., 1]
+
+        if i==20:
+            vprofile = (v/i).mean(axis=0)
+            if (vprofile[-20:].mean() - vprofile[:20].mean())< 1.:#1.:
+                return   # Return None if the condition is true
+    
+    return np.stack((u/i, v/i), axis=-1).astype(np.float16)

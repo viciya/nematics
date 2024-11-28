@@ -31,10 +31,15 @@ def progressBar(count_value, total, suffix=''):
 
 
 # %% 
+%matplotlib qt
+
 '''Train Random Forest Model'''
 # full_img = cv2.imread(r"C:\Users\victo\Downloads\Normal_Epidermis_and_Dermis_with_Intradermal_Nevus_10x.jfif")
-full_img = cv2.imread(r"C:\Users\victo\OneDrive - BGU\Nina\stone segment test\Train\montage.tif")
-mask = cv2.imread(r"C:\Users\victo\OneDrive - BGU\Nina\stone segment test\Train\montage_mask.tif")
+# full_img = cv2.imread(r"C:\Users\victo\OneDrive - BGU\Nina\stone segment test\Train\montage.tif")
+# mask = cv2.imread(r"C:\Users\victo\OneDrive - BGU\Nina\stone segment test\Train\montage_mask.tif")
+
+full_img = cv2.imread(r"C:\Users\victo\Downloads\HT1080\Odd_test\Weka_divisions\train.tif")
+mask = cv2.imread(r"C:\Users\victo\Downloads\HT1080\Odd_test\Weka_divisions\mask1.tif")
 
 img = full_img#[:,:,0]#[:900, :900]
 training_labels = (mask[:,:,0]/mask[:,:,0].max()).astype(np.uint8)
@@ -86,8 +91,10 @@ for ch, color in zip(range(3), ['r', 'g', 'b']):
 
 fig.tight_layout()
 # %%
-'''Make Prediction on Teest Image'''
-image_list = glob.glob(r"C:\Users\victo\OneDrive - BGU\Nina\stone segment test\Test\*.tif")
+'''Make Prediction on Test Image'''
+# image_list = glob.glob(r"C:\Users\victo\OneDrive - BGU\Nina\stone segment test\Test\*.tif")
+image_list = glob.glob(r"C:\Users\victo\Downloads\HT1080\Odd_test\s52\Raw\*.tif")
+
 from natsort import natsorted
 image_list = natsorted(image_list, key=lambda y: y.lower())
 full_img = cv2.imread(image_list[-10])
@@ -103,17 +110,37 @@ fig, ax = plt.subplots(1, 1, sharex=True, sharey=True, figsize=(6, 6))
 # ax.imshow(segmentation.mark_boundaries(img_new, result_new, mode='thick'))
 ax.imshow(img_new/img_new.max())
 ax.set_title('Image')
-ax.imshow(result_new, alpha=.1)
+ax.imshow(result_new, alpha=.2)
 # ax[1].imshow(result_new)
 # ax[1].set_title('Segmentation')
 fig.tight_layout()
+# %%
+divisions = []
+image_list_to_analyse = image_list[:20]
+for i,img in enumerate(image_list_to_analyse):
+    features_new = features_func(cv2.imread(img))
+    result_new = future.predict_segmenter(features_new, clf)
+    # plt.plot(np.mean(result_new-1, axis=0))
+    divisions.append(result_new-1)
+    progressBar(i, len(image_list_to_analyse))
+
+# %%
+%matplotlib inline
+all_frames = np.sum(divisions, axis=0)/len(divisions)
+profile = np.mean(all_frames, axis=0)
+width = np.arange(len(profile))
+width -= width[-1]//2
+plt.plot(width*.74, profile, linewidth=3, alpha=.6)
+
 # %% 
 ''' Save Model '''
-# with open(r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\DivMask\rand_forest" + "\RandomForestClassifier_seg_divisions_400.pkl", 'wb') as f:
-#         pickle.dump([clf, features_func], f)
+# model_path = r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\DivMask\rand_forest" + "\RandomForestClassifier_seg_divisions_400.pkl"
+model_path = r"C:\Users\victo\Downloads\HT1080\Odd_test\Weka_divisions" + "\RandomForestClassifier_seg_divisions.pkl"
+with open(model_path, 'wb') as f:
+        pickle.dump([clf, features_func], f)
 # %% 
 ''' Load Model ''' 
-with open(r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\DivMask\rand_forest" + "\RandomForestClassifier_seg_divisions_400.pkl", 'rb') as f:
+with open(model_path, 'rb') as f:
     clf, features_func = pickle.load(f) 
 
 # %% 
