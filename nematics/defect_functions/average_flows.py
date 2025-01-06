@@ -70,8 +70,8 @@ def defect_flow_frame_average(img1,img2, df_frame, defect_type="up", vorticity=N
         df = df_frame.copy()
 
 
-    u_frame = np.zeros((height1, width1), dtype=np.float32)
-    v_frame = u_frame
+    u_frame = np.zeros((height1, width1), dtype=np.float16)
+    v_frame = np.zeros_like(u_frame)
     count = 0
 
     x,y,th = ['xm', 'ym', 'angm1'] if defect_type=="minus" else ['xp', 'yp', 'angp1']
@@ -111,6 +111,71 @@ def defect_flow_frame_average(img1,img2, df_frame, defect_type="up", vorticity=N
     if count:
         print(u_frame.shape[1], u_frame.shape[0])
         return u_frame/count, v_frame/count, count
+
+def defect_flow_frame_all_frames(img1,img2, df_frame, defect_type="up", vorticity=None, vortTh=.001,
+                              box=(300,300), filt=1, sigma=15):
+    '''
+    vorticity = None/right/left
+    '''
+
+    im_h, im_w = img1.shape
+    width, height = box[0], box[1]
+    width1, height1 = int(width/2**.5), int(height/2**.5)
+    flow = cv2.calcOpticalFlowFarneback(img1,img2, None, 0.5, 3, 
+        winsize=sigma, iterations=3, poly_n=5, poly_sigma=1.2, flags=0)
+    if filt !=1:
+        flow = gaussian_filter(flow, sigma=filt)
+
+    if defect_type=="up":
+        df = df_frame[df_frame.fuse_up].copy()
+    elif defect_type=="down":
+        df = df_frame[~df_frame.fuse_up].copy()   
+    else:
+        df = df_frame.copy()
+
+
+    u_frame = np.zeros((height1, width1), dtype=np.float16)
+    v_frame = np.zeros_like(u_frame)
+    u_list, v_list, id_list = [], [], []
+    count = 0
+
+    x,y,th = ['xm', 'ym', 'angm1'] if defect_type=="minus" else ['xp', 'yp', 'angp1']
+
+    for i in range(len(df[x])):
+        try:
+            # center at defect position
+            cnt = (int(df[x].iloc[i]), int(df[y].iloc[i]))
+            if (cnt[0]>width//2) and (cnt[0]<im_w-width//2) and (cnt[1]>height//2) and (cnt[1]<im_h-height//2):
+                #1 crop each component of velocity field
+                
+                # image_crop = crop(255-img_clahe, cnt, width, height)[0] *** image
+                u,_ = crop(flow[:,:,0], cnt, width, height)
+                v,_ = crop(flow[:,:,1], cnt, width, height)
+
+                if vorticity:
+                    vort = curl_npgrad(np.stack((u, v), axis=-1)).mean()
+                    if (vorticity=="right" and vort<vortTh):
+                        continue
+                    elif (vorticity=="left" and vort>-vortTh):
+                        continue
+
+                #2 rotate velocity field (1. rotate vectors 2. rotate positions) 
+                # image_rot = rotate(image_crop, df["angp1"].iloc[i] * 180/np.pi) *** image
+                uv_rot = rotate_flow_field((u,v), df[th].iloc[i])
+
+                #3 crop again to smaller box (box**0.5)
+                cnt_crop = uv_rot[0].shape[1]/2, uv_rot[0].shape[0]/2
+
+                u_list.append(crop(uv_rot[0], cnt_crop, width1, height1)[0])
+                v_list.append(crop(uv_rot[1], cnt_crop, width1, height1)[0])
+                id_list.append(df["TRACK_ID"].iloc[i])
+                count += 1 
+        except:
+            pass
+        #      break
+
+    if count:
+        return u_list, v_list, id_list
     
 
 def orienatation_frame_average(img1, df_frame, defect_type="up", 
