@@ -49,7 +49,7 @@ def rotate_flow_field(flow, angle):
     return [u, v]  
 
 def defect_flow_frame_average(img1,img2, df_frame, defect_type="up", vorticity=None, vortTh=.001,
-                              box=(300,300), filt=1, sigma=15):
+                              box=(300,300), filt=1, sigma=15, edge=0):
     '''
     vorticity = None/right/left
     '''
@@ -76,13 +76,16 @@ def defect_flow_frame_average(img1,img2, df_frame, defect_type="up", vorticity=N
 
     x,y,th = ['xm', 'ym', 'angm1'] if defect_type=="minus" else ['xp', 'yp', 'angp1']
 
+    # Selects defect wich close to the edge
+    if edge:
+        df = df[((df[x]<edge) | (df[x]>im_w-edge))]
+    
     for i in range(len(df[x])):
         try:
             # center at defect position
             cnt = (int(df[x].iloc[i]), int(df[y].iloc[i]))
             if (cnt[0]>width//2) and (cnt[0]<im_w-width//2) and (cnt[1]>height//2) and (cnt[1]<im_h-height//2):
-                #1 crop each component of velocity field
-                
+                #1 crop each component of velocity field                
                 # image_crop = crop(255-img_clahe, cnt, width, height)[0] *** image
                 u,_ = crop(flow[:,:,0], cnt, width, height)
                 v,_ = crop(flow[:,:,1], cnt, width, height)
@@ -110,6 +113,7 @@ def defect_flow_frame_average(img1,img2, df_frame, defect_type="up", vorticity=N
 
     if count:
         print(u_frame.shape[1], u_frame.shape[0])
+        print("Exeptions: %s" % (len(df[x]) - count))
         return u_frame/count, v_frame/count, count
 
 def defect_flow_frame_all_frames(img1,img2, df_frame, defect_type="up", vorticity=None, vortTh=.001,

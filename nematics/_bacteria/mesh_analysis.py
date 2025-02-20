@@ -33,8 +33,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Load the GLB file as a scene
-scene = trimesh.load(r"C:\Users\victo\OneDrive - BGU\Nina\stones.glb")   # Replace with your GLB file path
-
+# scene = trimesh.load(r"C:\Users\victo\OneDrive - BGU\Nina\stones.glb")   # Replace with your GLB file path
+scene = trimesh.load(r"C:\Users\victo\Downloads\stones.glb")   # Replace with your GLB file path
 # Iterate through the geometries in the scene
 for i,geometry in enumerate(scene.geometry.values()):
     if hasattr(geometry, 'visual'):
@@ -70,7 +70,8 @@ def select_faces(faces, select_idx):
 %matplotlib qt
 
 # Load a 3D model from a file
-scene = trimesh.load(r"C:\Users\victo\OneDrive - BGU\Nina\stones.glb")
+# scene = trimesh.load(r"C:\Users\victo\OneDrive - BGU\Nina\stones.glb")
+scene = trimesh.load(r"C:\Users\victo\Downloads\stones.glb")
 # scene = trimesh.load(r"C:\Users\victo\OneDrive - BGU\Nina\Stone_set\1_2_2025.glb")
 # Check if the scene is valid
 if not scene.is_empty:
@@ -83,8 +84,11 @@ if not scene.is_empty:
         colors = geometry.visual.to_color().vertex_colors
         colors_norm = colors/colors.max(axis=0)
 
-        tr0,tr1,tr2 = .83, .83, .78 # RGB colors
-        select_idx = (colors_norm[:,0]<tr0) & (colors_norm[:,1]<tr1) & (colors_norm[:,2]<tr2)
+        # tr0,tr1,tr2 = .83, .83, .78 # RGB colors
+        # select_idx = (colors_norm[:,0]<tr0) & (colors_norm[:,1]<tr1) & (colors_norm[:,2]<tr2)
+
+        tr0,tr1,tr2 = .2, .1, .1 # RGB colors
+        select_idx = (colors_norm[:,0]>tr0) & (colors_norm[:,1]>tr1) & (colors_norm[:,2]>tr2)
 
         # Select the vertices and faces based on the condition
         vertices_in = vertices[select_idx]
@@ -97,9 +101,9 @@ if not scene.is_empty:
         # Plot the vertices
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
-        # sc = ax.scatter(vertices_in[:, 0], vertices_in[:, 1], vertices_in[:, 2], c=colors_norm_in[:,:3])
+        sc = ax.scatter(vertices[:, 0], vertices[:, 1], vertices[:, 2], c=colors_norm[:,:3])
         sc = ax.scatter(vertices_in[:, 0], vertices_in[:, 1], vertices_in[:, 2], c="r", s=3, alpha=.3)  # s is the size of the points
-        sc = ax.scatter(vertices_out[:, 0], vertices_out[:, 1], vertices_out[:, 2], c="b", s=3, alpha=.3) 
+        # sc = ax.scatter(vertices_out[:, 0], vertices_out[:, 1], vertices_out[:, 2], c="b", s=3, alpha=.3) 
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
@@ -146,11 +150,17 @@ else:
     print("The scene is empty or invalid.")
 
 # %%
-plt.hist(colors_norm[:,0],30, alpha=.3, color="r",label='Red')
-plt.hist(colors_norm[:,1], 30,alpha=.3, color="g",label='Green')
-plt.hist(colors_norm[:,2], 30,alpha=.3, color="b",label='Blue')
-plt.legend()
+plt.figure()
+# plt.hist(colors_norm[:,0],30, alpha=.3, color="r",label='Red', density=True)
+# plt.hist(colors_norm[:,1], 30,alpha=.3, color="g",label='Green', density=True)
+# plt.hist(colors_norm[:,2], 30,alpha=.3, color="b",label='Blue', density=True)
+# plt.legend()
 
+for channel in range(3):
+    plt.figure()
+    plt.hist(colors_norm[vertices[:, 1]<0.1,channel], 30, alpha=.3, color="r",label='***', density=True)
+    plt.hist(colors_norm[vertices[:, 1]>0.2,channel], 30, alpha=.3, color="b",label='*', density=True)
+    plt.legend()
 
 # %%
 # Here we find stones as connected components 
@@ -186,7 +196,7 @@ component_sizes = np.bincount(labels)
 large_components_labels = np.where(component_sizes > 300)[0]
 
 # Define a color map for different components
-colors = plt.cm.get_cmap('hsv', len(large_components_labels))
+colors = plt.cm.get_cmap('tab10', len(large_components_labels))
 
 objects = []
 # Plot each component with a different color
@@ -202,8 +212,8 @@ for i, label in enumerate(large_components_labels[:]):
                 color=colors(i), label='%s: %1.5s'%(label, str(area)), s=6, alpha=.3)
     
     
-    ax.text(np.mean(component_points[:, 0]), np.mean(component_points[:, 1]), np.mean(component_points[:, 2]), 
-            '%s: %1.5s'%(label, str(area)))#, color=colors(i))
+    ax.text(np.max(component_points[:, 0]), np.max(component_points[:, 1]), np.max(component_points[:, 2]), 
+            '%s: %1.5s'%(label, str(area)), size=16, fontweight='bold', color=colors(i))
     
 
 # Add labels and title
@@ -212,7 +222,14 @@ ax.set_ylabel('Y')
 ax.set_zlabel('Z')
 ax.set_title('3D Connected Components')
 
-ax.legend()
+# Create legend with colored text
+lgnd = ax.legend(prop={'size': 16}, markerscale=2)
+for handle, text in zip(lgnd.legendHandles, lgnd.get_texts()):
+    text.set_color(handle.get_facecolor()[0])
+    text.set_alpha(1)  # Set text alpha to 1
+    handle.set_alpha(1)  # Set legend alpha to 1
+
+
 ax.set_ylim(0, .6)
 ax.set_aspect("equal")
 # Set aspect ratio to 1
