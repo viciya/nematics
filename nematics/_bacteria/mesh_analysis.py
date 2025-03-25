@@ -84,11 +84,11 @@ if not scene.is_empty:
         colors = geometry.visual.to_color().vertex_colors
         colors_norm = colors/colors.max(axis=0)
 
-        # tr0,tr1,tr2 = .83, .83, .78 # RGB colors
-        # select_idx = (colors_norm[:,0]<tr0) & (colors_norm[:,1]<tr1) & (colors_norm[:,2]<tr2)
+        tr0,tr1,tr2 = .15,.15,.2#.83, .83, .78 # RGB colors
+        select_idx = (colors_norm[:,0]<tr0) & (colors_norm[:,1]<tr1) & (colors_norm[:,2]<tr2)
 
-        tr0,tr1,tr2 = .2, .1, .1 # RGB colors
-        select_idx = (colors_norm[:,0]>tr0) & (colors_norm[:,1]>tr1) & (colors_norm[:,2]>tr2)
+        # tr0,tr1,tr2 = .2, .1, .1 # RGB colors
+        # select_idx = (colors_norm[:,0]>tr0) #& (colors_norm[:,1]>tr1) & (colors_norm[:,2]>tr2)
 
         # Select the vertices and faces based on the condition
         vertices_in = vertices[select_idx]
@@ -101,9 +101,9 @@ if not scene.is_empty:
         # Plot the vertices
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
-        sc = ax.scatter(vertices[:, 0], vertices[:, 1], vertices[:, 2], c=colors_norm[:,:3])
+        # sc = ax.scatter(vertices[:, 0], vertices[:, 1], vertices[:, 2], c=colors_norm[:,:3])
         sc = ax.scatter(vertices_in[:, 0], vertices_in[:, 1], vertices_in[:, 2], c="r", s=3, alpha=.3)  # s is the size of the points
-        # sc = ax.scatter(vertices_out[:, 0], vertices_out[:, 1], vertices_out[:, 2], c="b", s=3, alpha=.3) 
+        sc = ax.scatter(vertices_out[:, 0], vertices_out[:, 1], vertices_out[:, 2], c="b", s=3, alpha=.3) 
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
@@ -150,16 +150,22 @@ else:
     print("The scene is empty or invalid.")
 
 # %%
-plt.figure()
+# plt.figure()
 # plt.hist(colors_norm[:,0],30, alpha=.3, color="r",label='Red', density=True)
 # plt.hist(colors_norm[:,1], 30,alpha=.3, color="g",label='Green', density=True)
 # plt.hist(colors_norm[:,2], 30,alpha=.3, color="b",label='Blue', density=True)
 # plt.legend()
 
+# for channel in range(3):
+#     plt.figure()
+#     plt.hist(colors_norm[vertices[:, 1]<0.1,channel], 30, alpha=.3, color="r",label='Low', density=True)
+#     plt.hist(colors_norm[vertices[:, 1]>0.2,channel], 30, alpha=.3, color="b",label='High', density=True)
+#     plt.legend()
+
 for channel in range(3):
     plt.figure()
-    plt.hist(colors_norm[vertices[:, 1]<0.1,channel], 30, alpha=.3, color="r",label='***', density=True)
-    plt.hist(colors_norm[vertices[:, 1]>0.2,channel], 30, alpha=.3, color="b",label='*', density=True)
+    plt.hist(colors_norm[(vertices[:, 0]>0.0)&(vertices[:, 0]<0.2),channel], 30, alpha=.3, color="r",label='Low', density=True)
+    plt.hist(colors_norm[vertices[:, 2]>0.25,channel], 30, alpha=.3, color="b",label='High', density=True)
     plt.legend()
 
 # %%

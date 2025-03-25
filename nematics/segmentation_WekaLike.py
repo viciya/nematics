@@ -37,32 +37,37 @@ def progressBar(count_value, total, suffix=''):
 # full_img = cv2.imread(r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\DivMask\rand_forest\Trans_400_raw_crop.tif")
 # mask = cv2.imread(r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\DivMask\rand_forest\Trans_400_raw_crop_label.png")
 
-# img = full_img#[:,:,0]#[:900, :900]
-# training_labels = (mask[:,:,0]/mask[:,:,0].max()).astype(np.uint8)
-# training_labels = -training_labels+2
+full_img = cv2.imread(r"C:\Users\victo\Downloads\weka\raw.tif")
+mask = cv2.imread(r"C:\Users\victo\Downloads\weka\mask1.tif")
 
-# sigma_min = 1
-# sigma_max = 12
-# features_func = partial(feature.multiscale_basic_features,
-#                         intensity=True, edges=False, texture=True,
-#                         sigma_min=sigma_min, sigma_max=sigma_max,
-#                         channel_axis=-1)
-# features = features_func(img)
-# clf = RandomForestClassifier(n_estimators=50, n_jobs=-1,
-#                              max_depth=50, max_samples=0.05)
-# clf = future.fit_segmenter(training_labels, features, clf)
-# result = future.predict_segmenter(features, clf)
 
-# fig, ax = plt.subplots(1, 2, sharex=True, sharey=True, figsize=(9, 4))
-# ax[0].imshow(segmentation.mark_boundaries(img, result, mode='thick'))
-# # ax[0].imshow(img)
-# ax[0].contour(training_labels)
-# # ax[0].imshow(training_labels, alpha=.3, cmap="hot")
-# ax[0].set_title('Image, mask and segmentation boundaries')
-# ax[1].imshow(img)
-# ax[1].imshow(result, alpha=.3)
-# ax[1].set_title('Segmentation')
-# fig.tight_layout()
+img = full_img#[:,:,0]#[:900, :900]
+training_labels = (mask[:,:,0]/mask[:,:,0].max()).astype(np.uint8)
+training_labels = -training_labels+2
+
+sigma_min = 1
+sigma_max = 12
+features_func = partial(feature.multiscale_basic_features,
+                        intensity=True, edges=False, texture=True,
+                        sigma_min=sigma_min, sigma_max=sigma_max,
+                        channel_axis=-1)
+                        
+features = features_func(img)
+clf = RandomForestClassifier(n_estimators=50, n_jobs=-1,
+                             max_depth=50, max_samples=0.05)
+clf = future.fit_segmenter(training_labels, features, clf)
+result = future.predict_segmenter(features, clf)
+
+fig, ax = plt.subplots(1, 2, sharex=True, sharey=True, figsize=(9, 4))
+ax[0].imshow(segmentation.mark_boundaries(img, result, mode='thick'))
+# ax[0].imshow(img)
+ax[0].contour(training_labels)
+# ax[0].imshow(training_labels, alpha=.3, cmap="hot")
+ax[0].set_title('Image, mask and segmentation boundaries')
+ax[1].imshow(img)
+ax[1].imshow(result, alpha=.3)
+ax[1].set_title('Segmentation')
+fig.tight_layout()
 # %%
 '''Plot Feature importance'''
 # fig, ax = plt.subplots(1, 2, figsize=(9, 4))
@@ -87,20 +92,20 @@ def progressBar(count_value, total, suffix=''):
 
 # fig.tight_layout()
 # %%
-'''Make Prediction on Teest Image'''
-# full_img = cv2.imread(r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\Trans__480.tif")
-# img_new = full_img[:700, :]
+'''Make Prediction on Test Image'''
+full_img = cv2.imread(r"E:\C2C12 and RPE in 6 well\15min5x\_1\Pos11\img_channel000_position011_time000000100_z000.tif")
+img_new = full_img[:700, :]
 
-# features_new = features_func(img_new)
-# result_new = future.predict_segmenter(features_new, clf)
-# fig, ax = plt.subplots(1, 1, sharex=True, sharey=True, figsize=(6, 6))
-# # ax.imshow(segmentation.mark_boundaries(img_new, result_new, mode='thick'))
-# ax.imshow(img_new/img_new.max())
-# ax.set_title('Image')
-# ax.imshow(result_new, alpha=.3)
-# # ax[1].imshow(result_new)
-# # ax[1].set_title('Segmentation')
-# fig.tight_layout()
+features_new = features_func(img_new)
+result_new = future.predict_segmenter(features_new, clf)
+fig, ax = plt.subplots(1, 1, sharex=True, sharey=True, figsize=(6, 6))
+# ax.imshow(segmentation.mark_boundaries(img_new, result_new, mode='thick'))
+ax.imshow(img_new/img_new.max())
+ax.set_title('Image')
+ax.imshow(result_new, alpha=.3)
+# ax[1].imshow(result_new)
+# ax[1].set_title('Segmentation')
+fig.tight_layout()
 # %% 
 ''' Save Model '''
 # with open(r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\DivMask\rand_forest" + "\RandomForestClassifier_seg_divisions_400.pkl", 'wb') as f:
@@ -111,19 +116,21 @@ with open(r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\DivMask\rand_forest
     clf, features_func = pickle.load(f) 
 
 # %% 
+%matplotlib qt
 ''' Run Model on Folder''' 
 # cv2.imwrite(r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\DivMask\rand_forest\Trans__480_div_mask.png", 255*(result_new-1))
 
-image_list = glob.glob(r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\*.tif")
+image_list = glob.glob(r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\Raw\*.tif")
 from natsort import natsorted
 image_list = natsorted(image_list, key=lambda y: y.lower())
-
+plt.figure(figsize=(6,6))
 for (i,im) in enumerate(image_list[335:]):
     img = cv2.imread(im)
     features_new = features_func(img)
     result = future.predict_segmenter(features_new, clf)
-    # plt.imshow(img/img.max())
-    # plt.imshow(result, alpha=.3)
+    plt.imshow(img/img.max())
+    plt.imshow(result, alpha=.3)
+    break
 
     save_path = os.path.join(
         os.path.dirname(im), 
@@ -135,3 +142,5 @@ for (i,im) in enumerate(image_list[335:]):
     progressBar(i, len(image_list))
 
     # break
+
+# %%
