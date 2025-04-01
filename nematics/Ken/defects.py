@@ -266,16 +266,18 @@ def interpolate_orientation_field(phi, x, y, method='complex'):
     Complex (mapping to a circle) works best. Maybe a better interpolation routine can be used?'''
     if method=='unwrap_np': 
         phi_unwraped = np.unwrap(np.unwrap(phi,period=np.pi,axis=0),period=np.pi,axis=1)
-        return sp.interpolate.interp2d(x,y,phi_unwraped)
+        return sp.interpolate.RectBivariateSpline(x, y, phi_unwraped)
         # return sp.interpolate.RectBivariateSpline(x,y,phi_unwraped)
     if method=='unwrap_scikit':
         phi_unwraped = restoration.unwrap_phase(2*phi)/2
-        return sp.interpolate.interp2d(x,y,phi_unwraped)
+        return sp.interpolate.RectBivariateSpline(x, y, phi_unwraped)
     if method=='complex':
         # Strech to [-pi,pi) and interpolate real an imaginary part separetly.
         c = np.exp(2j*phi)
-        interp_r = sp.interpolate.interp2d(x,y,np.real(c))
-        interp_i = sp.interpolate.interp2d(x,y,np.imag(c))
+        interp_r = sp.interpolate.RectBivariateSpline(x,y,np.real(c))
+        # sp.interpolate.interp2d(x,y,np.real(c))
+        interp_i = sp.interpolate.RectBivariateSpline(x,y,np.imag(c))
+        # sp.interpolate.interp2d(x,y,np.imag(c))
         return [interp_r, interp_i]
 
 def get_interpolated_angles(interp, x, y, method='complex'):

@@ -36,6 +36,27 @@ def analyze_defects(img, sigma=15):
     
     return ori, plushalf, minushalf
 
+def nematic_plot(ax, ori, plus, min, s=11):
+
+    y, x = np.mgrid[0:ori.shape[0], 0:ori.shape[1]]
+
+    ax.quiver(x[::s,::s], y[::s,::s],
+        np.cos(ori)[::s,::s], np.sin(ori)[::s,::s], np.arctan2(np.sin(ori), np.cos(ori))[::s,::s],
+        headaxislength=0, headwidth=0, headlength=0, width=.008,
+        scale=35, pivot='mid', alpha=.3, cmap="hsv")
+
+    alpha_half, scale_half = .8, 20    
+    ax.plot(plus['x'], plus['y'],'ro',markersize=8, alpha=alpha_half)
+    ax.quiver(plus['x'], plus['y'], 
+        np.cos(plus['ang1']), -np.sin(plus['ang1']), 
+        headaxislength=0, headwidth=0, headlength=0, color='r', scale=scale_half, alpha=alpha_half)
+
+    ax.plot(min['x'], min['y'],'wo',markersize=6, alpha=alpha_half)
+    for j in range(3):
+        ax.quiver(min['x'], min['y'], 
+            np.cos(min['ang'+str(j+1)]), -np.sin(min['ang'+str(j+1)]), 
+            headaxislength=0, headwidth=0, headlength=0, color='w', scale=scale_half, alpha=alpha_half)
+
 from scipy import spatial
 def center_pairs(Xlong, Xshort):
     '''find indexes of Xshort in Xlong'''
