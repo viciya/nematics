@@ -110,9 +110,9 @@ fig, ax = plt.subplots(1, 1, sharex=True, sharey=True, figsize=(6, 6))
 # ax.imshow(segmentation.mark_boundaries(img_new, result_new, mode='thick'))
 ax.imshow(img_new/img_new.max())
 ax.set_title('Image')
-ax.imshow(result_new, alpha=.2)
-# ax[1].imshow(result_new)
-# ax[1].set_title('Segmentation')
+ax.imshow(result_new, alpha=.6)#, cmap="jet")
+# ax.imshow(result_new, cmap="jet")
+ax.set_title('Segmentation')
 fig.tight_layout()
 # %%
 divisions = []
@@ -135,7 +135,7 @@ plt.plot(width*.74, profile, linewidth=3, alpha=.6)
 # %% 
 ''' Save Model '''
 # model_path = r"C:\Users\victo\Downloads\SB_lab\HBEC\s2(120-919)\DivMask\rand_forest" + "\RandomForestClassifier_seg_divisions_400.pkl"
-model_path = r"C:\Users\victo\Downloads\HT1080\Odd_test\Weka_divisions" + "\RandomForestClassifier_seg_divisions.pkl"
+model_path = r"C:\Users\victo\Downloads\HT1080\Odd_test\Weka_divisions" + "\RandomForestClassifier_seg_divisions220525.pkl"
 with open(model_path, 'wb') as f:
         pickle.dump([clf, features_func], f)
 # %% 

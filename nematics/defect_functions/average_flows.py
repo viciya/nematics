@@ -386,3 +386,60 @@ def uv_time_average(tiff_path):
                 return   # Return None if the condition is true
     
     return np.stack((u/i, v/i), axis=-1).astype(np.float16)
+
+def plot_flow_and_nematics(image_list, im_num, axs=None, flow_sigma=15, ori_sigma=21, 
+                           box=None, bg=True
+                           ):
+    if box is not None:
+        w0, h0, width, height = box[0], box[1], box[2], box[3]
+        img1 = cv2.imread(image_list[im_num])[w0:w0+width, h0:h0+height, 0]
+        img2 = cv2.imread(image_list[im_num+1])[w0:w0+width, h0:h0+height, 0]
+    else:
+        img1 = cv2.imread(image_list[im_num])[:,:,0]
+        img2 = cv2.imread(image_list[im_num+1])[:,:,0]
+
+    flow = cv2.calcOpticalFlowFarneback(img1,img2, None, 0.5, 3, 
+        winsize=flow_sigma, iterations=3, poly_n=5, poly_sigma=1.2, flags=0) 
+
+    step = int(flow_sigma*1.5)
+
+    if axs is None:
+        fig, axs = plt.subplots(1,2,  figsize=(16,8))
+    
+    axs[0].axis('off'); axs[1].axis('off')   
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+    img_clahe = clahe.apply(img1)
+    axs[0].imshow(255-img_clahe, cmap="gray")  
+    
+
+    y, x = np.mgrid[0:img1.shape[0], 0:img1.shape[1]]
+    axs[0].quiver(x[::step, ::step], y[::step, ::step], 
+            flow[::step, ::step, 0], -flow[::step, ::step, 1], 
+            color="red", scale=80, alpha=.5, width=.005)
+
+
+    ori, plus, min = analyze_defects(img1, sigma=ori_sigma)
+
+    s = int(flow_sigma*1)
+    if bg:      
+        axs[1].imshow(255-img_clahe, cmap="gray")
+    else:         
+        axs[1].imshow(np.zeros_like(img1, dtype=np.float32), cmap="gray")
+
+
+    quiver = axs[1].quiver(x[::s,::s], y[::s,::s],
+        np.cos(ori)[::s,::s], np.sin(ori)[::s,::s], np.arctan2(np.sin(ori), np.cos(ori))[::s,::s],
+        headaxislength=0, headwidth=0, headlength=0, width=.005, 
+        scale=60, pivot='mid', alpha=.5, cmap="hsv")
+
+    alpha_half, scale_half = .8, 15    
+    axs[1].plot(plus['x'], plus['y'],'ro',markersize=8, alpha=alpha_half)
+    axs[1].quiver(plus['x'], plus['y'], 
+        np.cos(plus['ang1']), -np.sin(plus['ang1']), 
+        headaxislength=0, headwidth=0, headlength=0, color='r', scale=scale_half, alpha=alpha_half)
+
+    axs[1].plot(min['x'], min['y'],'o',markersize=6, alpha=alpha_half, color='dodgerblue')
+    for j in range(3):
+        axs[1].quiver(min['x'], min['y'], 
+            np.cos(min['ang'+str(j+1)]), -np.sin(min['ang'+str(j+1)]), 
+            headaxislength=0, headwidth=0, headlength=0, color='dodgerblue', scale=scale_half, alpha=alpha_half)
