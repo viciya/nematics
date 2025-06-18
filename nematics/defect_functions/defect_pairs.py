@@ -8,13 +8,56 @@ from scipy.ndimage import rotate, gaussian_filter
 import pickle 
 from scipy.stats import circmean, circstd, sem
 from joblib import Parallel, delayed
+import subprocess
+import time
+import cv2
+import trackpy as tp
+
 
 
 sys.path.append('../vasco_scripts')  # add the relative path to the folder
 from defects import *  # import the module from the folder
 
 
+def image_list_to_defect_list_with_trajectories(img_list, sigma=15, search_range=60, memory=3, n_jobs=5):
+    df_plus, df_minus =image_list_to_defect_list(img_list, sigma=sigma, n_jobs=n_jobs)
+    df_plus = track_defects(df_plus, search_range=search_range, memory=memory)
+    df_minus = track_defects(df_minus, search_range=search_range, memory=memory)
+    return df_plus, df_minus
+
+def image_list_to_defect_list(img_list, sigma=15, n_jobs=5):
+
+    # sort image list
+    img_list = natsorted(img_list, key=lambda y: y.lower())
+    df_list = Parallel(n_jobs=n_jobs)(delayed(lambda img: analyze_defects(img, sigma=sigma)[1:])
+        (
+        cv2.imread(img)[:,:,0]
+        ) for img in img_list)
+
+    for i, df in enumerate(df_list):
+        df[0]['frame'] = i
+        df[1]['frame'] = i
+
+    # Concatenate the DataFrames
+    df_plus = pd.concat([df[0] for df in df_list], ignore_index=True)
+    df_minus = pd.concat([df[1] for df in df_list], ignore_index=True)
+    
+    return df_plus, df_minus
+
+def track_defects(df_, search_range=45, memory=3):
+    return tp.link_df(df_, search_range, memory=memory)
+
+
 def analyze_defects(img, sigma=15):
+    """
+    Find orentaion and defects from raw image
+    img: image (phase contrast or fluorescence)
+    sigma: standard deviation for Gaussian filter used in orientation analysis
+    Returns:
+        ori: orientation of the image
+        plushalf: DataFrame of positive defects with charge +0.5    
+        minushalf: DataFrame of negative defects with charge -0.5
+    """
     # Calculate mgrid
     yy, xx = np.mgrid[0:img.shape[0], 0:img.shape[1]]
     
@@ -35,6 +78,10 @@ def analyze_defects(img, sigma=15):
     minushalf = defects[defects['charge']==-.5]
     
     return ori, plushalf, minushalf
+
+
+
+
 
 def nematic_plot(ax, ori, plus, min, s=11):
 
@@ -196,6 +243,81 @@ def equlalize_trajectories(plus_minus_df, p_idx, m_idx):
     return df_.set_axis(["plus_id","xp","yp","angp1", "min_id","xm","ym", "angm1","angm2","angm3"], axis=1)
 
 # = = = FIND PAIRS FINCTIONS = = == = = = = = = = = = = = = = = = = = = = = = =
+def find_pairs_and_save_to_csv(input_csv, output_csv, 
+                    # jar_path = r"C:\Users\victo\OneDrive - BGU\Dov\CreationFusion.jar", 
+                    jar_path = "../defect_functions/CreationFusion.jar",
+                    dist_threshold=5, time_threshold=2, 
+                    dist_from_edge=30, time_from_beginning_and_end=2, 
+                    x=0, y=0, width=1608, height=1104):
+    
+    # TODO add auto detection of width and height (for max(x) and max(y))
+    """
+    Function to find pairs of objects based on the given parameters.
+    The javadoc is my complete code comments. If you’re interested, download the whole thing, and then start with overview-tree.html.  These pages don’t work without being downloaded.
+
+    To run the jar file, make sure you have java installed and the jar file is set as an executable.  
+
+    Creating a File of Pairs
+    Here is  a sample run command:
+    java -jar CreationFusion.jar ../PlusAndMinusTM.csv RPE1_pairs.csv window 900 0 900 900 threshold 3, 35, 5, 40
+
+    The run command must have:
+
+    java -jar CreationFusion.jar [file to read from] [file to write to]
+
+    Where each argument is separated by a space.  The first argument after CreationFusion.jar should be the name of the file being read from.  The second argument should be the name of the file being written to.  
+
+    If the whole read file is not meant to be used, but only defects within a certain window, then the window argument should be added.  The first two arguments following the window argument should be the x and y values of te rectangle nearest the origin, followed by the width and height of the rectangle.
+
+    java -jar CreationFusion.jar [file to read from] [file to write to] window [x] [y] [width] [height]
+
+    Another argument is the threshold argument, after threshold the next value must be a distance threshold followed by an integer time threshold.  If no threshold is set, default values of dist = 40 and time = 4 are used.  Note, the distance is for pixels in the original frames.
+
+    java -jar CreationFusion.jar [file to read from] [file to write to] threshold [dist threshold] [time threshold] [dist from edge] [time from beginning and end] window [x] [y] [width] [height]
+
+    If you want to read multiple input files, then the first word should be a folder containing exactly the input files.  For example, if 3 files, s1, s11, and s12 are in in a folder called sFolder, and there is nothing else in sFolder, then the following should work:
+
+    java -jar CreationFusion.jar sFolder output.csv threshold 10 2 30 2 window 0 0 900 900
+
+    The code actually has much more functionality, so let me know what you want to do, and I’ll make it command line accessible.  I’m not claiming I’m done, but this is some of what I’ve done so far.
+
+    Creating a File of Images
+    The run command must have:
+
+    java -jar CreationFusion.jar [file to read from] [folder to write to] [line of interest index]
+
+    Note, the folder you write to must already be created.  Be sure the location the run common is executed from contains the files “NefDef.png” and “PosDef.png”. Those files are available for download in this folder.
+
+    """
+    command = [
+        "java",
+        "-jar",
+        jar_path,
+        input_csv,
+        output_csv,
+        "threshold",
+        str(dist_threshold),
+        str(time_threshold),
+        str(dist_from_edge),
+        str(time_from_beginning_and_end),
+        "window",
+        str(x), str(y), str(width), str(height)
+    ]
+
+    # Run the command and capture output
+    try:
+        result = subprocess.run(command)#, check=True, capture_output=True, text=True)
+        print("Java program executed successfully.")
+        print("Output:", result.stdout)
+    except subprocess.CalledProcessError as e:
+        print(f"An error occurred: {e}")
+        print("Error Output:", e.stderr)
+    
+    # Pause for 500 milliseconds
+    time.sleep(0.5)
+    print(pd.read_csv(output_csv).dropna(subset=["min_id","creation"]).shape)
+    return None
+
 
 def pair_list(PlusAndMinusTM, dist_thresh):
     """
