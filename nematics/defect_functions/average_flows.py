@@ -127,6 +127,9 @@ def defect_flow_frame_average_with_edge(img1,img2, df_frame, defect_type="up", v
     width1, height1 = int(width/2**.5), int(height/2**.5)
     flow = cv2.calcOpticalFlowFarneback(img1,img2, None, 0.5, 3, 
         winsize=sigma, iterations=3, poly_n=5, poly_sigma=1.2, flags=0)
+    flow[:,:,0] = flow[:,:,0]- np.mean(flow[:,:,0])
+    flow[:,:,1] = flow[:,:,1]- np.mean(flow[:,:,1])
+
     if filt !=1:
         flow = gaussian_filter(flow, sigma=filt)
 
