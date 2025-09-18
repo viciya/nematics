@@ -20,7 +20,7 @@ from defects import *  # import the module from the folder
 
 
 def image_list_to_defect_list_with_trajectories(img_list, sigma=15, search_range=60, memory=3, n_jobs=5):
-    df_plus, df_minus =image_list_to_defect_list(img_list, sigma=sigma, n_jobs=n_jobs)
+    df_plus, df_minus = image_list_to_defect_list(img_list, sigma=sigma, n_jobs=n_jobs)
     df_plus = track_defects(df_plus, search_range=search_range, memory=memory)
     df_minus = track_defects(df_minus, search_range=search_range, memory=memory)
     return df_plus, df_minus
