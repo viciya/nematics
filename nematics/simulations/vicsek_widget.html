@@ -1,0 +1,644 @@
+<!-- IMPROVED VICSEK MODEL WIDGET START -->
+<!-- Paste this entire block into your webpage -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<div style="width:100%; overflow-x:auto; border-radius:12px; background:#0b0f14; padding:8px;">
+  <div id="vicsek-widget" style="max-width:900px; margin:0 auto; aspect-ratio:1/1; background:#0b0f14; border-radius:12px; overflow:hidden; font-family: 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial;">
+    <style>
+      :root {
+        --bg: #0b0f14;
+        --panel: #0f1720;
+        --muted: #94a3b8;
+        --accent: #ef4444;
+        --accent-2: #60a5fa;
+        --panel-border: #111827;
+      }
+      #vicsek-widget { display:flex; flex-direction:column; height:100%; color:var(--muted); }
+      #vicsek-widget .controls { background:linear-gradient(180deg,var(--panel), #0b1320); border-top:1px solid var(--panel-border); padding:12px; max-height:35%; overflow:auto; }
+      #vicsek-widget input[type=range]{ -webkit-appearance:none; width:100%; background:transparent; }
+      #vicsek-widget input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; height:14px; width:14px; border-radius:50%; background:var(--accent); cursor:pointer; margin-top:-5px; }
+      #vicsek-widget input[type=range]::-webkit-slider-runnable-track{ height:4px; border-radius:4px; background:#334155; }
+      #vicsek-widget input[type=checkbox]{ accent-color:var(--accent); width:16px; height:16px; cursor:pointer; }
+      #vw-quality-select{ padding-right:1.6rem; -webkit-appearance:none; appearance:none; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%23cbd5e1" d="M7 10l5 5 5-5z"/></svg>'); background-repeat:no-repeat; background-position:right 0.5rem center; background-size:0.9rem; }
+      .stat-overlay{ position:absolute; top:8px; left:8px; background:rgba(15,23,42,0.6); color:#cbd5e1; font-size:12px; padding:6px 8px; border-radius:8px; backdrop-filter: blur(4px); pointer-events:none; z-index:20; }
+      .btn { padding:6px 10px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; }
+      .btn-primary { background:var(--accent); color:white; }
+      .btn-ghost { background:#0f1724; color:#e6eef8; border:1px solid rgba(255,255,255,0.03); }
+      .label-xs { font-size:12px; color:#cbd5e1; }
+      .grid-controls { display:grid; gap:10px; grid-template-columns: repeat(1,minmax(0,1fr)); }
+      @media(min-width:640px){ .grid-controls{ grid-template-columns: repeat(2,minmax(0,1fr)); } }
+      @media(min-width:1024px){ .grid-controls{ grid-template-columns: repeat(4,minmax(0,1fr)); } }
+      /* Focus visible */
+      #vicsek-widget input:focus, #vicsek-widget select:focus, #vicsek-widget button:focus { outline: 2px solid rgba(96,165,250,0.18); outline-offset:2px; }
+    </style>
+
+    <!-- Simulation area -->
+    <div style="position:relative; flex:1; min-height:0;">
+      <canvas id="vw-simCanvas" style="display:block; width:100%; height:100%;"></canvas>
+
+      <div class="stat-overlay" role="status" aria-live="polite">
+        Order: <span id="vw-order-val" style="font-weight:700;color:#4ade80">0.00</span>
+        &nbsp;|&nbsp; FPS: <span id="vw-fps-val">0</span>
+        &nbsp;|&nbsp; N: <span id="vw-count-live">0</span>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls" aria-label="Vicsek model controls">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px;">
+        <h1 style="font-size:13px; font-weight:700; color:var(--accent-2); text-transform:uppercase; letter-spacing:0.08em;">High-Performance Vicsek</h1>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <label class="label-xs" for="vw-quality-select">Quality</label>
+          <select id="vw-quality-select" aria-label="Recording quality" title="Recording bitrate" class="bg-slate-700 border border-slate-600 text-xs rounded text-white py-1 px-2 cursor-pointer">
+            <option value="2000000">Low (2 Mbps)</option>
+            <option value="5000000" selected>Medium (5 Mbps)</option>
+            <option value="10000000">High (10 Mbps)</option>
+          </select>
+
+          <label for="vw-color-check" class="label-xs">Static Color</label>
+          <input id="vw-color-check" type="checkbox" aria-label="Toggle static color">
+
+          <button id="vw-record-btn" class="btn btn-primary" aria-pressed="false" aria-label="Start recording">Record</button>
+          <button id="vw-reset-btn" class="btn btn-ghost" aria-label="Reset simulation">Reset</button>
+          <button id="vw-pause-btn" class="btn btn-ghost" aria-label="Pause simulation">Pause</button>
+        </div>
+      </div>
+
+      <div id="vw-control-desc" class="label-xs" style="height:18px; margin-bottom:8px; color:#94a3b8; font-style:italic;">Hover controls to see a short description...</div>
+
+      <div class="grid-controls">
+        <!-- each control -->
+        <div class="group">
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <label class="label-xs">Noise (η)</label>
+            <span id="vw-noise-display" class="label-xs" style="color:var(--accent-2); font-family:monospace;">0.7</span>
+          </div>
+          <input type="range" id="vw-noise-slider" min="0" max="5" step="0.1" value="0.7" data-desc="Randomness added to direction (0 = ordered, 5 = chaotic)." aria-label="Noise">
+        </div>
+
+        <div class="group">
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <label class="label-xs">Radius (R)</label>
+            <span id="vw-radius-display" class="label-xs" style="color:var(--accent-2); font-family:monospace;">7</span>
+          </div>
+          <input type="range" id="vw-radius-slider" min="2" max="50" step="1" value="7" data-desc="Interaction range.">
+        </div>
+
+        <div class="group">
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <label class="label-xs">Speed</label>
+            <span id="vw-speed-display" class="label-xs" style="color:var(--accent-2); font-family:monospace;">1.5</span>
+          </div>
+          <input type="range" id="vw-speed-slider" min="0" max="8" step="0.1" value="1.5" data-desc="Base movement speed of particles.">
+        </div>
+
+        <div class="group">
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <label class="label-xs">Antiparallel Cost</label>
+            <span id="vw-cost-display" class="label-xs" style="color:var(--accent-2); font-family:monospace;">0.00</span>
+          </div>
+          <input type="range" id="vw-cost-slider" min="0" max="2" step="0.01" value="0.0" data-desc="Friction/turbulence cost for opposing flows.">
+        </div>
+
+        <div class="group">
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <label class="label-xs">Separation Cost</label>
+            <span id="vw-separation-display" class="label-xs" style="color:var(--accent-2); font-family:monospace;">0.00</span>
+          </div>
+          <input type="range" id="vw-separation-slider" min="0" max="5" step="0.01" value="0.0" data-desc="Repulsion to avoid overlap.">
+        </div>
+
+        <div class="group">
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <label class="label-xs">Speed Dev.</label>
+            <span id="vw-speed-dev-display" class="label-xs" style="color:var(--accent-2); font-family:monospace;">0.5</span>
+          </div>
+          <input type="range" id="vw-speed-dev-slider" min="0" max="3" step="0.1" value="0.5" data-desc="Variation in particle speed.">
+        </div>
+
+        <div class="group">
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <label class="label-xs">Rev. Interval</label>
+            <span id="vw-interval-display" class="label-xs" style="color:var(--accent-2); font-family:monospace;">150</span>
+          </div>
+          <input type="range" id="vw-interval-slider" min="0" max="300" step="5" value="150" data-desc="Mean frames between direction flips (0 = Off).">
+        </div>
+
+        <div class="group">
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <label class="label-xs">Run Dev.</label>
+            <span id="vw-deviation-display" class="label-xs" style="color:var(--accent-2); font-family:monospace;">0.5</span>
+          </div>
+          <input type="range" id="vw-deviation-slider" min="0" max="1" step="0.1" value="0.5" data-desc="Memory of motion (low = persistent).">
+        </div>
+
+        <div class="group">
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <label class="label-xs">Elongation</label>
+            <span id="vw-aspect-display" class="label-xs" style="color:var(--accent-2); font-family:monospace;">2.0</span>
+          </div>
+          <input type="range" id="vw-aspect-slider" min="1" max="6" step="0.1" value="2.0" data-desc="Shape ratio (length / width).">
+        </div>
+
+        <div class="group">
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <label class="label-xs">Count (N)</label>
+            <span id="vw-count-display" class="label-xs" style="color:var(--accent-2); font-family:monospace;">1500</span>
+          </div>
+          <input type="range" id="vw-count-slider" min="100" max="10000" step="100" value="1500" data-desc="Total number of particles (up to 10k).">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  // Root nodes
+  const widgetRoot = document.getElementById('vicsek-widget');
+  const canvas = document.getElementById('vw-simCanvas');
+  const ctx = canvas.getContext('2d', { alpha: true });
+
+  // UI mapping
+  const ui = {
+    noise: document.getElementById('vw-noise-slider'),
+    radius: document.getElementById('vw-radius-slider'),
+    speed: document.getElementById('vw-speed-slider'),
+    speedDev: document.getElementById('vw-speed-dev-slider'),
+    cost: document.getElementById('vw-cost-slider'),
+    separation: document.getElementById('vw-separation-slider'),
+    count: document.getElementById('vw-count-slider'),
+    aspect: document.getElementById('vw-aspect-slider'),
+    interval: document.getElementById('vw-interval-slider'),
+    deviation: document.getElementById('vw-deviation-slider'),
+    colorCheck: document.getElementById('vw-color-check'),
+    qualitySelect: document.getElementById('vw-quality-select'),
+
+    noiseDisplay: document.getElementById('vw-noise-display'),
+    radiusDisplay: document.getElementById('vw-radius-display'),
+    speedDisplay: document.getElementById('vw-speed-display'),
+    speedDevDisplay: document.getElementById('vw-speed-dev-display'),
+    costDisplay: document.getElementById('vw-cost-display'),
+    separationDisplay: document.getElementById('vw-separation-display'),
+    countDisplay: document.getElementById('vw-count-display'),
+    aspectDisplay: document.getElementById('vw-aspect-display'),
+    intervalDisplay: document.getElementById('vw-interval-display'),
+    deviationDisplay: document.getElementById('vw-deviation-display'),
+
+    orderVal: document.getElementById('vw-order-val'),
+    fpsVal: document.getElementById('vw-fps-val'),
+    countLive: document.getElementById('vw-count-live'),
+
+    recordBtn: document.getElementById('vw-record-btn'),
+    resetBtn: document.getElementById('vw-reset-btn'),
+    pauseBtn: document.getElementById('vw-pause-btn'),
+    descDisplay: document.getElementById('vw-control-desc')
+  };
+
+  // Hover descriptions for ranges + keyboard focus
+  const sliders = widgetRoot.querySelectorAll('input[type="range"]');
+  sliders.forEach(slider => {
+    const showDesc = () => {
+      ui.descDisplay.textContent = slider.dataset.desc || '';
+      ui.descDisplay.style.color = '#60a5fa';
+      ui.descDisplay.style.fontStyle = 'normal';
+    };
+    const clearDesc = () => {
+      ui.descDisplay.textContent = 'Hover controls to see a short description...';
+      ui.descDisplay.style.color = '';
+      ui.descDisplay.style.fontStyle = 'italic';
+    };
+    slider.addEventListener('mouseenter', showDesc);
+    slider.addEventListener('focus', showDesc);
+    slider.addEventListener('blur', clearDesc);
+    slider.addEventListener('mouseleave', clearDesc);
+  });
+
+  // State
+  let dpr = Math.max(1, window.devicePixelRatio || 1);
+  let width = 300, height = 300;
+  let particles = [];
+  let isPaused = false;
+  let frameCounter = 0;
+  let lastFpsTime = performance.now();
+  let framesSinceLastFps = 0;
+  let mediaRecorder = null;
+  let recordedChunks = [];
+  let isRecording = false;
+
+  // params (keeps in sync with UI)
+  let params = {
+    N: parseInt(ui.count.value, 10),
+    v: parseFloat(ui.speed.value),
+    vDev: parseFloat(ui.speedDev.value),
+    cost: parseFloat(ui.cost.value),
+    separation: parseFloat(ui.separation.value),
+    r: parseFloat(ui.radius.value),
+    noise: parseFloat(ui.noise.value),
+    aspect: parseFloat(ui.aspect.value),
+    interval: parseInt(ui.interval.value, 10),
+    runDeviation: parseFloat(ui.deviation.value),
+    staticColor: ui.colorCheck.checked,
+    bitsPerSecond: parseInt(ui.qualitySelect.value, 10)
+  };
+
+  // Particle class
+  class Particle {
+    constructor() {
+      this.reset();
+    }
+    reset() {
+      this.x = Math.random() * width;
+      this.y = Math.random() * height;
+      this.angle = Math.random() * Math.PI * 2;
+      this.nextAngle = this.angle;
+      this.direction = Math.random() > 0.5 ? 1 : -1;
+      this.stepsInCurrentDirection = 0;
+      this.staticHue = Math.random() * 360;
+      this.speedRandom = (Math.random() * 2) - 1;
+      this.frictionFactor = 1.0;
+    }
+    draw(ctx) {
+      const lowDetail = particles.length > 3000;
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.angle);
+      const hue = params.staticColor ? this.staticHue : ((this.angle + Math.PI) / (Math.PI * 2)) * 360;
+      ctx.fillStyle = `hsla(${hue}, 80%, 60%, 0.95)`;
+
+      if (lowDetail) {
+        const len = 3 * params.aspect;
+        ctx.fillRect(-len / 2, -1, len, 2);
+      } else {
+        ctx.beginPath();
+        const w = 4;
+        const h = 4 * params.aspect;
+        // draw a rotated ellipse area approximated by ellipse()
+        ctx.ellipse(0, 0, h, w, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+    updatePosition() {
+      // Reversal logic (shuttling)
+      if (params.interval > 0) {
+        let P_base = 1.0 / params.interval;
+        let P_dynamic = P_base;
+        if (params.runDeviation > 0) {
+          P_dynamic = P_base * (1 + (this.stepsInCurrentDirection / Math.max(1, params.interval)) * params.runDeviation);
+        }
+        if (Math.random() < Math.min(1, P_dynamic)) {
+          this.direction *= -1;
+          this.stepsInCurrentDirection = 0;
+        } else {
+          this.stepsInCurrentDirection++;
+        }
+      } else {
+        this.direction = 1;
+        this.stepsInCurrentDirection = 0;
+      }
+
+      let baseSpeed = params.v + (this.speedRandom * params.vDev);
+      let effectiveSpeed = baseSpeed * this.frictionFactor * this.direction;
+
+      this.x += Math.cos(this.angle) * effectiveSpeed;
+      this.y += Math.sin(this.angle) * effectiveSpeed;
+
+      // Periodic boundaries
+      if (this.x < 0) this.x += width;
+      if (this.x > width) this.x -= width;
+      if (this.y < 0) this.y += height;
+      if (this.y > height) this.y -= height;
+    }
+  }
+
+  // Resize + DPR scaling
+  function resize() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    // Keep square aspect ratio by using container width
+    width = Math.max(1, Math.floor(rect.width));
+    height = width;
+    dpr = Math.max(1, window.devicePixelRatio || 1);
+
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // scale to device space
+  }
+
+  // Create / trim particles safely
+  function initParticles() {
+    const desired = Math.max(1, Math.round(params.N));
+    if (particles.length < desired) {
+      const toAdd = desired - particles.length;
+      for (let i = 0; i < toAdd; i++) particles.push(new Particle());
+    } else if (particles.length > desired) {
+      particles.length = desired; // trim safely
+    }
+    // If none exist, create at least one (defensive)
+    if (particles.length === 0) {
+      for (let i = 0; i < desired; i++) particles.push(new Particle());
+    }
+    ui.countLive.textContent = particles.length;
+  }
+
+  // Physics update (spatial grid acceleration)
+  function updatePhysics() {
+    // Grid size must cover interaction radius and separation radius
+    const sepRadius = 10 + params.separation * 6; // separation visual radius (px)
+    const gridSize = Math.max(params.r, sepRadius, 10);
+    const cols = Math.ceil(width / gridSize) || 1;
+    const rows = Math.ceil(height / gridSize) || 1;
+
+    // initialize grid robustly
+    const grid = Array.from({ length: cols * rows }, () => []);
+
+    // populate grid
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+      let col = Math.floor(p.x / gridSize);
+      let row = Math.floor(p.y / gridSize);
+      if (col < 0) col = 0; if (col >= cols) col = cols - 1;
+      if (row < 0) row = 0; if (row >= rows) row = rows - 1;
+      grid[row * cols + col].push(i);
+    }
+
+    const rSq = params.r * params.r;
+    const sepRadiusSq = sepRadius * sepRadius;
+
+    let sumCosTotal = 0;
+    let sumSinTotal = 0;
+
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+      let col = Math.floor(p.x / gridSize);
+      let row = Math.floor(p.y / gridSize);
+      if (col < 0) col = 0; if (col >= cols) col = cols - 1;
+      if (row < 0) row = 0; if (row >= rows) row = rows - 1;
+
+      let avgSin = 0;
+      let avgCos = 0;
+      let neighbors = 0;
+      let antiparallelCount = 0;
+
+      const pVelX = Math.cos(p.angle) * p.direction;
+      const pVelY = Math.sin(p.angle) * p.direction;
+
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          let ncol = col + dx;
+          let nrow = row + dy;
+          // wrap edges for periodic boundary (toroidal)
+          if (ncol < 0) ncol = cols - 1; else if (ncol >= cols) ncol = 0;
+          if (nrow < 0) nrow = rows - 1; else if (nrow >= rows) nrow = 0;
+
+          const cell = grid[nrow * cols + ncol];
+          if (!cell) continue;
+
+          for (let idx = 0; idx < cell.length; idx++) {
+            const otherIdx = cell[idx];
+            if (otherIdx === i) continue;
+            const other = particles[otherIdx];
+
+            // Minimum image / periodic distance
+            let dxp = other.x - p.x;
+            let dyp = other.y - p.y;
+            if (dxp > width / 2) dxp -= width; if (dxp < -width / 2) dxp += width;
+            if (dyp > height / 2) dyp -= height; if (dyp < -height / 2) dyp += height;
+
+            const distSq = dxp * dxp + dyp * dyp;
+            if (distSq < rSq) {
+              const otherCos = Math.cos(other.angle);
+              const otherSin = Math.sin(other.angle);
+              const oVelX = Math.cos(other.angle) * other.direction;
+              const oVelY = Math.sin(other.angle) * other.direction;
+              const flowDot = pVelX * oVelX + pVelY * oVelY;
+
+              avgCos += otherCos;
+              avgSin += otherSin;
+              neighbors++;
+
+              if (flowDot < -0.3) antiparallelCount++;
+            }
+
+            // separation inside sepRadius
+            if (params.separation > 0 && distSq < sepRadiusSq && distSq > 1e-6) {
+              const dist = Math.sqrt(distSq);
+              const strength = (1.0 - dist / sepRadius) * params.separation;
+              avgCos -= (dxp / dist) * strength;
+              avgSin -= (dyp / dist) * strength;
+            }
+          }
+        }
+      }
+
+      let effectiveNoise = params.noise;
+      if (neighbors > 0 || params.separation > 0) {
+        const avgAngle = Math.atan2(avgSin, avgCos);
+        if (params.cost > 0 && antiparallelCount > 0) {
+          const stress = antiparallelCount * params.cost;
+          effectiveNoise += stress * 0.25;
+          p.frictionFactor = Math.exp(-stress * 0.5);
+        } else {
+          p.frictionFactor = 1.0;
+        }
+        p.nextAngle = avgAngle + (Math.random() - 0.5) * effectiveNoise;
+      } else {
+        p.nextAngle = p.angle;
+        p.frictionFactor = 1.0;
+      }
+
+      sumCosTotal += Math.cos(p.angle);
+      sumSinTotal += Math.sin(p.angle);
+    }
+
+    // commit angles and move
+    for (let i = 0; i < particles.length; i++) {
+      particles[i].angle = particles[i].nextAngle;
+      particles[i].updatePosition();
+    }
+
+    const magnitude = Math.sqrt(sumCosTotal * sumCosTotal + sumSinTotal * sumSinTotal);
+    const currentOrderParam = magnitude / Math.max(1, particles.length);
+    if ((frameCounter % 10) === 0) {
+      ui.orderVal.textContent = currentOrderParam.toFixed(2);
+      ui.orderVal.style.color = currentOrderParam > 0.7 ? '#4ade80' : (currentOrderParam > 0.3 ? '#fbbf24' : '#fb7185');
+    }
+  }
+
+  // Main loop (with improved FPS calc)
+  function loop(ts) {
+    requestAnimationFrame(loop);
+
+    if (!isPaused) {
+      // fade background for trail effect
+      ctx.fillStyle = 'rgba(11, 15, 20, 0.36)';
+      ctx.fillRect(0, 0, width, height);
+
+      updatePhysics();
+      for (let i = 0; i < particles.length; i++) particles[i].draw(ctx);
+    }
+
+    // FPS calculation every 500 ms
+    framesSinceLastFps++;
+    if (ts - lastFpsTime >= 500) {
+      const fps = Math.round((framesSinceLastFps * 1000) / (ts - lastFpsTime));
+      ui.fpsVal.textContent = fps;
+      framesSinceLastFps = 0;
+      lastFpsTime = ts;
+    }
+    frameCounter++;
+  }
+
+  // Recording helpers (robust fallback)
+  function startRecording() {
+    if (!canvas.captureStream) {
+      alert('Recording not supported by this browser.');
+      return;
+    }
+    try {
+      const stream = canvas.captureStream(60);
+      recordedChunks = [];
+      const bps = Number(params.bitsPerSecond) || 5000000;
+      const mimePrefer = 'video/webm; codecs=vp9';
+      let options = { bitsPerSecond: bps };
+      let mime = mimePrefer;
+      if (!MediaRecorder.isTypeSupported || !MediaRecorder.isTypeSupported(mimePrefer)) {
+        // try a more compatible type
+        mime = 'video/webm; codecs=vp8';
+        if (!MediaRecorder.isTypeSupported || !MediaRecorder.isTypeSupported(mime)) {
+          mime = 'video/webm';
+          if (!MediaRecorder.isTypeSupported || !MediaRecorder.isTypeSupported(mime)) {
+            // leave mime unset and hope
+            mime = '';
+          }
+        }
+      }
+      if (mime) options.mimeType = mime;
+      mediaRecorder = new MediaRecorder(stream, options);
+      mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size) recordedChunks.push(e.data); };
+      mediaRecorder.onstop = saveRecording;
+      mediaRecorder.start();
+      isRecording = true;
+      ui.recordBtn.setAttribute('aria-pressed', 'true');
+      ui.recordBtn.textContent = 'Stop';
+      ui.recordBtn.classList.add('animate-pulse');
+    } catch (err) {
+      console.error('startRecording error', err);
+      alert('Recording failed: ' + (err && err.message ? err.message : String(err)));
+    }
+  }
+  function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+    }
+    isRecording = false;
+    ui.recordBtn.setAttribute('aria-pressed', 'false');
+    ui.recordBtn.textContent = 'Record';
+    ui.recordBtn.classList.remove('animate-pulse');
+  }
+  function saveRecording() {
+    try {
+      const blob = new Blob(recordedChunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `vicsek_model_${new Date().toISOString().replace(/[:.]/g, '-')}.webm`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 200);
+    } catch (err) {
+      console.error('saveRecording error', err);
+    }
+  }
+
+  // UI event wiring
+  const bindInput = (el, fn) => el.addEventListener('input', fn);
+  bindInput(ui.noise, (e) => { params.noise = parseFloat(e.target.value); ui.noiseDisplay.textContent = params.noise.toFixed(1); });
+  bindInput(ui.radius, (e) => { params.r = parseFloat(e.target.value); ui.radiusDisplay.textContent = params.r; });
+  bindInput(ui.speed, (e) => { params.v = parseFloat(e.target.value); ui.speedDisplay.textContent = params.v; });
+  bindInput(ui.speedDev, (e) => { params.vDev = parseFloat(e.target.value); ui.speedDevDisplay.textContent = params.vDev.toFixed(1); });
+  bindInput(ui.cost, (e) => { params.cost = parseFloat(e.target.value); ui.costDisplay.textContent = params.cost.toFixed(2); });
+  bindInput(ui.separation, (e) => { params.separation = parseFloat(e.target.value); ui.separationDisplay.textContent = params.separation.toFixed(2); });
+  bindInput(ui.interval, (e) => { params.interval = parseInt(e.target.value, 10); ui.intervalDisplay.textContent = params.interval === 0 ? 'Off' : params.interval; });
+  bindInput(ui.deviation, (e) => { params.runDeviation = parseFloat(e.target.value); ui.deviationDisplay.textContent = params.runDeviation.toFixed(1); });
+  bindInput(ui.aspect, (e) => { params.aspect = parseFloat(e.target.value); ui.aspectDisplay.textContent = params.aspect.toFixed(1); });
+  bindInput(ui.count, (e) => { params.N = parseInt(e.target.value, 10); ui.countDisplay.textContent = params.N; initParticles(); });
+  ui.colorCheck.addEventListener('change', (e) => { params.staticColor = e.target.checked; });
+  ui.qualitySelect.addEventListener('change', (e) => { params.bitsPerSecond = parseInt(e.target.value, 10) || params.bitsPerSecond; });
+
+  ui.resetBtn.addEventListener('click', () => {
+    // clear canvas and reinitialise particles
+    ctx.clearRect(0, 0, width, height);
+    particles = [];
+    initParticles();
+    if (isRecording) stopRecording();
+  });
+
+  ui.pauseBtn.addEventListener('click', () => {
+    isPaused = !isPaused;
+    ui.pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
+    ui.pauseBtn.classList.toggle('btn-primary', isPaused);
+  });
+
+  ui.recordBtn.addEventListener('click', () => {
+    if (isRecording) stopRecording(); else startRecording();
+  });
+
+  // Keyboard shortcuts: Space = pause/resume, R = reset, C = toggle static color, S = start/stop recording
+  window.addEventListener('keydown', (ev) => {
+    if (ev.target && (/input|textarea|select/i).test(ev.target.tagName)) return; // ignore when typing
+    if (ev.code === 'Space') {
+      ev.preventDefault();
+      ui.pauseBtn.click();
+    } else if (ev.key.toLowerCase() === 'r') {
+      ui.resetBtn.click();
+    } else if (ev.key.toLowerCase() === 'c') {
+      ui.colorCheck.checked = !ui.colorCheck.checked;
+      ui.colorCheck.dispatchEvent(new Event('change'));
+    } else if (ev.key.toLowerCase() === 's') {
+      ui.recordBtn.click();
+    }
+  });
+
+  // Pause simulation when tab hidden to save CPU
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if (!isPaused) { isPaused = true; ui.pauseBtn.textContent = 'Resume'; }
+    }
+  });
+
+  // Resize handling (resize observer + window fallback)
+  const ro = new ResizeObserver(() => {
+    resize();
+    // reposition particles proportionally so layout stays stable
+    for (let p of particles) {
+      p.x = (p.x / Math.max(1, width)) * width;
+      p.y = (p.y / Math.max(1, height)) * height;
+    }
+  });
+  ro.observe(widgetRoot);
+  window.addEventListener('resize', () => resize());
+
+  // Initialize
+  resize();
+  initParticles();
+  lastFpsTime = performance.now();
+  requestAnimationFrame(loop);
+
+  // initial canvas background
+  ctx.fillStyle = '#0b0f14';
+  ctx.fillRect(0, 0, width, height);
+
+  // small accessibility helper: announce initial state
+  widgetRoot.setAttribute('role', 'region');
+  widgetRoot.setAttribute('aria-label', 'Vicsek model interactive simulation');
+
+})();
+</script>
+<!-- IMPROVED VICSEK MODEL WIDGET END -->

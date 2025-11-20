@@ -121,6 +121,11 @@ def defect_flow_frame_average_with_edge(img1,img2, df_frame, defect_type="up", v
     '''
     vorticity = None/right/left
     '''
+    # Works for 8-bit and 16-bit images
+    if img1.dtype != np.uint8:
+        img1 = cv2.normalize(img1, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+    if img2.dtype != np.uint8:
+        img2 = cv2.normalize(img2, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
 
     im_h, im_w = img1.shape
     width, height = box[0], box[1]
