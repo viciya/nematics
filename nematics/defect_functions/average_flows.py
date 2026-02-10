@@ -29,6 +29,31 @@ def curl_npgrad(flow):
     curl = dFy_dx - dFx_dy
     return curl.T
 
+def shear_rate_2d(flow):
+    """
+    Calculates the magnitude of the shear rate for a 2D flow field.
+    flow: numpy array of shape (height, width, 2) 
+          where flow[..., 0] is Fx (u) and flow[..., 1] is Fy (v)
+    """
+    Fx, Fy = flow[:, :, 0], flow[:, :, 1]
+    
+    # Partial derivatives
+    # Note: np.gradient axis=0 is vertical (y), axis=1 is horizontal (x)
+    dFx_dy = np.gradient(Fx, axis=0) # du/dy
+    dFx_dx = np.gradient(Fx, axis=1) # du/dx
+    dFy_dy = np.gradient(Fy, axis=0) # dv/dy
+    dFy_dx = np.gradient(Fy, axis=1) # dv/dx
+    
+    # Calculate the magnitude of the shear rate tensor
+    # Formula: sqrt( 2*(du/dx)^2 + 2*(dv/dy)^2 + (du/dy + dv/dx)^2 )
+    shear_rate = np.sqrt(
+        2 * (dFx_dx**2) + 
+        2 * (dFy_dy**2) + 
+        (dFx_dy + dFy_dx)**2
+    )
+    
+    return shear_rate
+
 def crop(img, center, width, height):
     ulx, uly = max(int(center[0] - width//2), 0), max(int(center[1] - height//2), 0)
     lrx, lry = min(int(center[0] + width//2), img.shape[1]), min(int(center[1] + height//2), img.shape[0])
@@ -121,6 +146,11 @@ def defect_flow_frame_average_with_edge(img1,img2, df_frame, defect_type="up", v
     '''
     vorticity = None/right/left
     '''
+    # Works for 8-bit and 16-bit images
+    if img1.dtype != np.uint8:
+        img1 = cv2.normalize(img1, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+    if img2.dtype != np.uint8:
+        img2 = cv2.normalize(img2, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
 
     im_h, im_w = img1.shape
     width, height = box[0], box[1]

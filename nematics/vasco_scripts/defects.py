@@ -287,7 +287,10 @@ def get_interpolated_angles(interp, x, y, method='complex'):
     for i in range(len(x)):
         if method=='complex':
             # Combine real and imaginary part and map back to [-pi/2,pi/2) again
-            phi[i] = np.angle(interp[0](x[i], y[i]) + 1j*interp[1](x[i], y[i]))/2
+            phi[i] = np.angle(
+                    interp[0](x[i], y[i]).item() + 1j * interp[1](x[i], y[i]).item()
+                    ) / 2.0
+
         else:
             phi[i] = modulo(interp(x[i],y[i]))
     return phi

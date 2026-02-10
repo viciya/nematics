@@ -25,7 +25,7 @@ def image_list_to_defect_list_with_trajectories(img_list, sigma=15, search_range
     df_minus = track_defects(df_minus, search_range=search_range, memory=memory)
     return df_plus, df_minus
 
-def image_list_to_defect_list(img_list, sigma=15, n_jobs=5):
+def image_list_to_defect_list(img_list, sigma=15, n_jobs=4):
 
     # sort image list
     img_list = natsorted(img_list, key=lambda y: y.lower())
