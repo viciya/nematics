@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vertex Model Simulation - T1 Transition Rate</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; padding: 0; }
+    input[type=range] { accent-color: #3b82f6; }
+    .accent-emerald { accent-color: #10b981; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script>
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    function App() {
+      const [d3Loaded, setD3Loaded] = useState(false);
+      
+      // UI State Controls
+      const [numCells, setNumCells] = useState(800);
+      const [shapeIndex, setShapeIndex] = useState(3.81);
+      const [noiseLevel, setNoiseLevel] = useState(0.8);
+      const [kArea, setKArea] = useState(1.5);
+      const [kPerimeter, setKPerimeter] = useState(1.5);
+      
+      // Tracking Neighbor Exchange Rate
+      const [swapRate, setSwapRate] = useState(0);
+      const prevNeighborsRef = useRef(new Map()); 
+      const frameRef = useRef(0);
+      const swapHistoryRef = useRef([]); // Stores number of swaps per frame for sliding window
+      const WINDOW_SIZE = 100; // Number of frames to average over
+
+      const canvasRef = useRef(null);
+      const wrapperRef = useRef(null);
+      const pointsRef = useRef([]);
+      const paramsRef = useRef({ shapeIndex, noiseLevel, kArea, kPerimeter });
+
+      useEffect(() => {
+        paramsRef.current = { shapeIndex, noiseLevel, kArea, kPerimeter };
+      }, [shapeIndex, noiseLevel, kArea, kPerimeter]);
+
+      useEffect(() => {
+        if (window.d3) { setD3Loaded(true); return; }
+        const script = document.createElement('script');
+        script.id = 'd3-script';
+        script.src = "https://cdn.jsdelivr.net/npm/d3@7";
+        script.onload = () => setD3Loaded(true);
+        document.head.appendChild(script);
+      }, []);
+
+      useEffect(() => {
+        const observer = new ResizeObserver((entries) => {
+          for (let entry of entries) {
+            const { width, height } = entry.contentRect;
+            if (canvasRef.current) {
+              canvasRef.current.width = width;
+              canvasRef.current.height = height;
+            }
+          }
+        });
+        if (wrapperRef.current) observer.observe(wrapperRef.current);
+        return () => observer.disconnect();
+      }, []);
+
+      const initPoints = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const rect = wrapperRef.current?.getBoundingClientRect();
+        const width = rect?.width || canvas.width || 800;
+        const height = rect?.height || canvas.height || 600;
+        
+        if (width < 50 || height < 50) {
+          setTimeout(initPoints, 100);
+          return;
+        }
+
+        const newPoints = [];
+        for (let i = 0; i < numCells; i++) {
+          newPoints.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            vx: 0,
+            vy: 0,
+            color: `hsl(${Math.random() * 360}, 65%, 75%)`,
+            lastSwapFrame: -100 
+          });
+        }
+        pointsRef.current = newPoints;
+        prevNeighborsRef.current = new Map();
+        swapHistoryRef.current = [];
+        setSwapRate(0);
+        frameRef.current = 0;
+      };
+
+      useEffect(() => {
+        if (d3Loaded) initPoints();
+      }, [d3Loaded, numCells]);
+
+      useEffect(() => {
+        if (!d3Loaded) return;
+        let animationId;
+        
+        const updatePhysics = (d3) => {
+          const canvas = canvasRef.current;
+          if (!canvas) return;
+          const width = canvas.width;
+          const height = canvas.height;
+          const points = pointsRef.current;
+          const N = points.length;
+          if (N === 0 || width === 0) return;
+
+          frameRef.current++;
+          const currentFrame = frameRef.current;
+
+          const { shapeIndex, noiseLevel, kArea, kPerimeter } = paramsRef.current;
+          const A0 = (width * height) / N;
+          const P0 = shapeIndex * Math.sqrt(A0);
+
+          const coords = Float64Array.from(points.flatMap(p => [p.x, p.y]));
+          const delaunay = new d3.Delaunay(coords);
+          const voronoi = delaunay.voronoi([0, 0, width, height]);
+
+          // --- NEIGHBOR EXCHANGE RATE TRACKING ---
+          let frameLostBonds = 0;
+          const currentNeighbors = new Map();
+          
+          for (let i = 0; i < N; i++) {
+            const neighborsSet = new Set(voronoi.neighbors(i));
+            currentNeighbors.set(i, neighborsSet);
+            
+            if (prevNeighborsRef.current.has(i)) {
+              const oldSet = prevNeighborsRef.current.get(i);
+              let changed = false;
+              for (const neighborIdx of oldSet) {
+                if (!neighborsSet.has(neighborIdx)) {
+                  frameLostBonds++;
+                  changed = true;
+                }
+              }
+              if (changed) points[i].lastSwapFrame = currentFrame;
+            }
+          }
+          
+          // Normalized swaps in this frame (approx T1 events)
+          const frameSwaps = frameLostBonds / 4;
+          swapHistoryRef.current.push(frameSwaps);
+          if (swapHistoryRef.current.length > WINDOW_SIZE) {
+            swapHistoryRef.current.shift();
+          }
+
+          // Calculate Rate: Average swaps per cell per frame over the window
+          if (currentFrame % 5 === 0) { // Update UI every 5 frames for stability
+            const totalSwapsInWindow = swapHistoryRef.current.reduce((a, b) => a + b, 0);
+            const rate = totalSwapsInWindow / (WINDOW_SIZE * N);
+            setSwapRate(rate);
+          }
+          
+          prevNeighborsRef.current = currentNeighbors;
+
+          // 1. Calculate Polygon Properties
+          const cellProps = [];
+          for (let i = 0; i < N; i++) {
+            const poly = voronoi.cellPolygon(i);
+            if (!poly || poly.length < 3) {
+              cellProps.push({ valid: false });
+              continue;
+            }
+
+            let area = 0, cx = 0, cy = 0, perimeter = 0;
+            const len = poly.length - 1;
+            for (let j = 0; j < len; j++) {
+              const p1 = poly[j];
+              const p2 = poly[j + 1];
+              const cross = p1[0] * p2[1] - p2[0] * p1[1];
+              area += cross;
+              cx += (p1[0] + p2[0]) * cross;
+              cy += (p1[1] + p2[1]) * cross;
+              perimeter += Math.hypot(p2[0] - p1[0], p2[1] - p1[1]);
+            }
+            area /= 2;
+            const signedArea = area;
+            area = Math.abs(area);
+
+            if (area > 0.001) {
+              cx /= 6 * signedArea;
+              cy /= 6 * signedArea;
+            } else {
+              cx = points[i].x;
+              cy = points[i].y;
+            }
+
+            cellProps.push({
+              valid: true, area, cx, cy, perimeter,
+              dA: (area - A0) / A0,
+              dP: (perimeter - P0) / P0
+            });
+          }
+
+          // 2. Compute Forces
+          for (let i = 0; i < N; i++) {
+            if (!cellProps[i].valid) continue;
+            const props = cellProps[i];
+            let Fx = 0; let Fy = 0;
+
+            Fx += kPerimeter * props.dP * (props.cx - points[i].x);
+            Fy += kPerimeter * props.dP * (props.cy - points[i].y);
+
+            const neighbors = voronoi.neighbors(i);
+            for (const j of neighbors) {
+              if (!cellProps[j] || !cellProps[j].valid) continue;
+              const dx = points[j].x - points[i].x;
+              const dy = points[j].y - points[i].y;
+              const dist = Math.hypot(dx, dy) || 1;
+              const areaDiff = cellProps[j].dA - props.dA;
+              Fx += kArea * areaDiff * (dx / dist) * 6.0;
+              Fy += kArea * areaDiff * (dy / dist) * 6.0;
+            }
+
+            const R = Math.sqrt(A0) * 0.25;
+            for (const j of neighbors) {
+              const dx = points[i].x - points[j].x;
+              const dy = points[i].y - points[j].y;
+              const dist = Math.hypot(dx, dy);
+              if (dist > 0 && dist < R) {
+                const overlap = R - dist;
+                Fx += (dx / dist) * overlap * 3.0;
+                Fy += (dy / dist) * overlap * 3.0;
+              }
+            }
+
+            const angle = Math.random() * Math.PI * 2;
+            Fx += Math.cos(angle) * noiseLevel;
+            Fy += Math.sin(angle) * noiseLevel;
+
+            const fMag = Math.hypot(Fx, Fy);
+            if (fMag > 5.0) { Fx = (Fx / fMag) * 5.0; Fy = (Fy / fMag) * 5.0; }
+            points[i].vx = Fx;
+            points[i].vy = Fy;
+          }
+
+          // 3. Update Positions
+          for (let i = 0; i < N; i++) {
+            points[i].x = Math.max(2, Math.min(width - 2, points[i].x + points[i].vx));
+            points[i].y = Math.max(2, Math.min(height - 2, points[i].y + points[i].vy));
+          }
+
+          // 4. Render
+          const ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, width, height);
+          for (let i = 0; i < N; i++) {
+            const poly = voronoi.cellPolygon(i);
+            if (!poly) continue;
+            ctx.beginPath();
+            ctx.moveTo(poly[0][0], poly[0][1]);
+            for (let j = 1; j < poly.length; j++) ctx.lineTo(poly[j][0], poly[j][1]);
+            ctx.closePath();
+
+            const framesSinceSwap = currentFrame - points[i].lastSwapFrame;
+            if (framesSinceSwap < 30) {
+                const alpha = 1 - (framesSinceSwap / 30);
+                ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                ctx.fill();
+                ctx.globalCompositeOperation = 'destination-over';
+                ctx.fillStyle = points[i].color;
+                ctx.fill();
+                ctx.globalCompositeOperation = 'source-over';
+            } else {
+                ctx.fillStyle = points[i].color;
+                ctx.fill();
+            }
+
+            ctx.strokeStyle = "rgba(0, 0, 0, 0.45)";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          }
+        };
+
+        const loop = () => {
+          updatePhysics(window.d3);
+          animationId = requestAnimationFrame(loop);
+        };
+        loop();
+        return () => cancelAnimationFrame(animationId);
+      }, [d3Loaded]);
+
+      return React.createElement('div', { className: 'flex flex-row h-screen w-full bg-slate-900 text-slate-100 font-sans overflow-hidden' },
+        React.createElement('div', { className: 'flex-grow relative p-4', ref: wrapperRef },
+          React.createElement('div', { className: 'absolute inset-4 bg-slate-800 rounded-xl shadow-2xl border border-slate-700 overflow-hidden' },
+            !d3Loaded && React.createElement('div', { className: 'absolute inset-0 flex items-center justify-center text-slate-400' }, 'Loading simulation engine...'),
+            React.createElement('canvas', { ref: canvasRef, className: 'w-full h-full block' }),
+            // Overlay for Swap Rate
+            React.createElement('div', { className: 'absolute top-4 left-4 bg-slate-900/80 backdrop-blur px-4 py-2 rounded-lg border border-slate-700 shadow-xl flex flex-col items-center min-w-[140px]' },
+              React.createElement('div', { className: 'text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1' }, 'Transition Rate'),
+              React.createElement('div', { className: 'text-2xl font-mono text-blue-400' }, swapRate.toFixed(4)),
+              React.createElement('div', { className: 'text-[9px] text-slate-500 uppercase' }, 'swaps / cell / frame')
+            )
+          )
+        ),
+        React.createElement('div', { className: 'w-80 bg-slate-800 border-l border-slate-700 flex flex-col p-6 overflow-y-auto shadow-xl z-10' },
+          React.createElement('h2', { className: 'text-xl font-bold mb-1 text-blue-400' }, 'Vertex Model'),
+          React.createElement('p', { className: 'text-xs text-slate-400 mb-6 pb-4 border-b border-slate-700' }, 'Measuring rearrangement rate. Fluid monolayers exhibit high T1 swap rates.'),
+          React.createElement('div', { className: 'flex flex-col gap-6' },
+            createControl('Number of Cells', numCells, setNumCells, 400, 4000, 100),
+            createControl('Shape Index P₀/√A₀', shapeIndex, setShapeIndex, 3.0, 4.8, 0.01, true),
+            createControl('Active Motility (Noise)', noiseLevel, setNoiseLevel, 0, 5, 0.1),
+            createControl('Area Cost E_A', kArea, setKArea, 0, 5, 0.1, false, 'emerald'),
+            createControl('Perimeter Cost E_P', kPerimeter, setKPerimeter, 0, 5, 0.1, false, 'emerald'),
+            React.createElement('div', { className: 'pt-6 mt-4 border-t border-slate-700' },
+              React.createElement('button', { onClick: initPoints, className: 'w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-medium rounded-lg transition-colors' }, 'Reset Simulation')
+            )
+          )
+        )
+      );
+    }
+
+    function createControl(label, value, setValue, min, max, step, showRange = false, color = 'blue') {
+      const displayValue = value.toFixed(step < 1 ? 2 : 0);
+      const isEmerald = color === 'emerald';
+      return React.createElement('div', { className: 'space-y-2' },
+        React.createElement('div', { className: 'flex justify-between' },
+          React.createElement('label', { className: 'text-sm font-medium' }, label),
+          React.createElement('span', { className: `text-sm ${isEmerald ? 'text-emerald-300' : 'text-blue-300'} font-mono` }, displayValue)
+        ),
+        React.createElement('input', {
+          type: 'range', min, max, step, value,
+          onChange: (e) => setValue(Number(e.target.value)),
+          className: `w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer ${isEmerald ? 'accent-emerald' : ''}`
+        }),
+        showRange && React.createElement('div', { className: 'flex justify-between text-[10px] text-slate-500 mt-1 uppercase tracking-wider' },
+          React.createElement('span', null, 'Solid (<3.81)'),
+          React.createElement('span', null, 'Fluid (>3.81)')
+        )
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));
+  </script>
+</body>
+</html>

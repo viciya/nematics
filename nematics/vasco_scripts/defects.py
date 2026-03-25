@@ -13,6 +13,7 @@ Default values are set for nematic field obtained from experimental data.
 import scipy as sp
 import numpy as np
 import pandas as pd
+import cv2
 
 from skimage import feature, measure, restoration
 
@@ -43,6 +44,21 @@ def get_orientation_angle(u, v, type='nematic'):
     if type=='nematic': # get orientation in [-pi/2,pi/2)
         phi = np.arctan(v/u) # TO DO: catch zero exception!!
     return phi
+
+# =============================================================================
+# Order parameter
+# =============================================================================
+def order_parameter(orientation_map, kernel_size = 61):
+    # 1. Use a 61x61 box kernel to average neighbors within 30px     
+    cos_2theta = np.cos(2 * orientation_map)
+    sin_2theta = np.sin(2 * orientation_map)
+
+    Qxx = cv2.blur(cos_2theta, (kernel_size, kernel_size))
+    Qxy = cv2.blur(sin_2theta, (kernel_size, kernel_size))
+
+    # 3. Resulting Nematic Order Parameter for every pixel
+    return np.sqrt(Qxx**2 + Qxy**2)
+
 
 # =============================================================================
 # Computation of topological charges
